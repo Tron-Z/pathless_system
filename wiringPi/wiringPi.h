@@ -829,6 +829,7 @@ extern int wiringPiDebug;
 
 /* Allwinner A733 */
 #define PI_MODEL_4_PRO           110
+#define PI_MODEL_ZERO_3_W        111
 
 extern const char *piModelNames    [16] ;
 
