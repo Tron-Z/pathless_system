@@ -94,6 +94,11 @@ static char * alts_310b [] =
   "IN", "OUT", "PWM", "OFF"
 };
 
+static char * alts_310p [] =
+{
+  "IN", "OUT", "PWM", "OFF", "SPI",
+};
+
 static char * alts_jh7110 [] =
 {
   "IN", "OUT", "ALT1", "ALT2", "ALT3", "ALT4", "ALT5", "ALT6", "ALT7", "ALT8", "ALT9", "ALT10", "ALT11", "ALT12", "ALT13", "ALT14", \
@@ -1886,7 +1891,7 @@ static char * physNames_AIPRO[64] =
 	"GPIO1_06", "GND     ",
 	"GPIO2_15", "GPIO2_16",
 	"    3.3V", "GPIO0_25",
-	"SPI0_SD0", "GND     ",
+	"SPI0_SDO", "GND     ",
 	"SPI0_SDI", "GPIO0_02",
 	"SPI0_CLK", "SPI0_CS ",
 	"     GND", "GPIO2_19",
@@ -1922,6 +1927,60 @@ static int physToWpi_AIPRO[64] =
 	21, 22, //35,36
 	23, 24, //37,38
 	-1, 25, //39,40
+
+	// Padding:
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // ... 56
+	-1, -1, -1, -1, -1, -1, -1,    					// ... 63
+};
+
+static char * physNames_AISTATION[64] =
+{
+	NULL,
+	"    3.3V", "5V      ",
+	"    SDA3", "5V      ",
+	"    SCL3", "GND     ",
+	"    PWM1", "UTXD2   ",
+	"     GND", "URXD2   ",
+	"   UTXD9", "URXD9   ",
+	"GPIO1_08", "GND     ",
+	"   UTXD1", "URXD1   ",
+	"    3.3V", "GPIO1_7 ",
+	"SPI3_SDO", "GND     ",
+	"SPI3_SDI", "SPI5_CS0",
+	"SPI3_CLK", "SPI3_CS0",
+	"     GND", "SPI3_CS1",
+	"    SDA4", "SCL4    ",
+	"SPI5_CLK", "GND     ",
+	"GPIO1_12", "GPIO1_11",
+	"GPIO1_18", "GND     ",
+	"GPIO1_17", "SPI5_SDI",
+	"SPI5_SDO", "SCL5    ",
+	"     GND", "SDA5    ",
+};
+
+static int physToWpi_AISTATION[64] =
+{
+	-1,     //0
+	-1, -1, //1,2
+	-1, -1, //3,4
+	-1, -1, //5,6
+	 0, -1, //7,8
+	-1, -1, //9,10
+	 1,  2, //11,12
+	 3, -1, //13,14
+	-1, -1, //15,16
+	-1,  4, //17,18
+	 5, -1, //19,20
+	 6,  7, //21,22
+	 8,  9, //23,24
+	-1, 10, //25,26
+	-1, -1, //27,28
+	11, -1, //29,30
+	12, 13, //31,32
+	14, -1, //33,34
+	15, 16, //35,36
+	17, -1, //37,38
+	-1, -1, //39,40
 
 	// Padding:
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // ... 56
@@ -2341,6 +2400,12 @@ void OrangePiReadAll(int model)
 			physNames =  physNames_AIPRO;
 			alts = alts_310b;
 			break;
+		case PI_MODEL_AI_STATION:
+			printf (" +------+-----+----------+--------+---+AI STATION+---+--------+----------+-----+------+\n");
+			physToWpi =  physToWpi_AISTATION;
+			physNames =  physNames_AISTATION;
+			alts = alts_310p;
+			break;
 		case PI_MODEL_RV:
 			printf (" +------+-----+----------+--------+---+   PIRV   +---+--------+----------+-----+------+\n");
 			physToWpi =  physToWpi_RV;
@@ -2382,6 +2447,7 @@ void OrangePiReadAll(int model)
 		case PI_MODEL_3_PLUS:
 		case PI_MODEL_AI_PRO:
 		case PI_MODEL_KUNPENG_PRO:
+		case PI_MODEL_AI_STATION:
 		case PI_MODEL_RV:
 		case PI_MODEL_4A:
 		case PI_MODEL_4_PRO:
@@ -2530,6 +2596,9 @@ void OrangePiReadAll(int model)
 		case PI_MODEL_KUNPENG_PRO:
 			printf (" +------+-----+----------+--------+---+  KP PRO  +---+--------+----------+-----+------+\n");
 			break;
+		case PI_MODEL_AI_STATION:
+			printf (" +------+-----+----------+--------+---+AI STATION+---+--------+----------+-----+------+\n");
+			break;
 		case PI_MODEL_RV:
 			printf (" +------+-----+----------+--------+---+   PIRV   +---+--------+----------+-----+------+\n");
 			break;
@@ -2601,6 +2670,9 @@ void doQmode (int argc, char *argv [])
 		case PI_MODEL_AI_PRO:
 		case PI_MODEL_KUNPENG_PRO:
 			alts = alts_310b;
+			break;
+		case PI_MODEL_AI_STATION:
+			alts = alts_310p;
 			break;
 		default:
 			alts = alts_common;

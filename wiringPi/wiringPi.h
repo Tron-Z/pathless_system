@@ -668,6 +668,59 @@ typedef struct {
 
 /*************** Ascend 310B ******************/
 
+/*************** Ascend 310P ******************/
+// IOMUX
+#define A310P_IOMUX_BASE_GROUP0	0xA4560000
+#define A310P_IOMUX_BASE_GROUP1	0xA4560000
+#define A310P_IOMUX_BASE_GROUP2	0xA4560000
+#define A310P_IOMUX_BASE_GROUP3	0xFA6E0000
+#define A310P_IOMUX_BASE_GROUP4	0x8B160000
+#define A310P_IOMUX_BASE_GROUP5	0x84020000
+
+// GPIO_BASE
+#define A310P_GPIO_BASE_GROUP0 0xA4500000
+#define A310P_GPIO_BASE_GROUP1 0xA4510000
+#define A310P_GPIO_BASE_GROUP2 0xA4520000
+#define A310P_GPIO_BASE_GROUP3 0xFA6B0000
+#define A310P_GPIO_BASE_GROUP4 0x8B100000
+#define A310P_GPIO_BASE_GROUP5 0x840E0000
+
+// GPIO OFFSET
+#define A310P_GPIO_DIRECTION_OFFSET 0x4
+#define A310P_GPIO_SET_VALUE_OFFSET 0x0
+#define A310P_GPIO_GET_VALUE_OFFSET 0x50
+
+// PWM
+#define A310P_PWM_BASE 		      0x0084000000
+#define A310P_PWM_PRD1_OFFSET 	      0x14
+#define A310P_PWM_CH1_PWL_OFFSET      0x18
+#define A310P_PWM_CH1_PWH_OFFSET      0x1C
+
+#define A310P_PWM_MEASURE_TIME_OFFSET 0x108
+
+typedef struct {
+	void * iomux_base_group0;
+	void * iomux_base_group1;
+	void * iomux_base_group2;
+	void * iomux_base_group3;
+	void * iomux_base_group4;
+	void * iomux_base_group5;
+
+	void * gpio_base_group0;
+	void * gpio_base_group1;
+	void * gpio_base_group2;
+	void * gpio_base_group3;
+	void * gpio_base_group4;
+	void * gpio_base_group5;
+	
+	void * pwm_base;
+	unsigned int pwm_prd1_phyaddr;
+	unsigned int pwm_ch1_pwl_phyaddr;
+	unsigned int pwm_ch1_pwh_phyaddr;
+	unsigned int pwm_measure_time_phyaddr;
+} a310p_gpio_info;
+/*************** Ascend 310P ******************/
+
 /*************** JH7110 ******************/
 
 #define JH7110_SYS_IOMUX_BASE                    0x13040000U
@@ -818,6 +871,9 @@ extern int wiringPiDebug;
 /* Ascend 310B */
 #define PI_MODEL_AI_PRO          70
 #define PI_MODEL_KUNPENG_PRO     71
+
+/* Ascend 310P */
+#define PI_MODEL_AI_STATION      75
 
 /* JH7110 */
 #define PI_MODEL_RV              80

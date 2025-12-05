@@ -106,6 +106,14 @@ static void set_pwm_info(int pin)
 			pwm_info_t.ccr = 750000;
 			pwm_info_t.arr = 1500000;
 			break;
+		case PI_MODEL_AI_STATION:
+			if (pin != 0) {
+				fprintf (stderr, "the pin you choose doesn't support hardware PWM\n") ;
+				exit(1);
+			}
+			pwm_info_t.ccr = 750000;
+			pwm_info_t.arr = 1500000;
+			break;
 		default:
 			printf("Oops - unable to determine board type...");
 			exit(1);
@@ -141,7 +149,7 @@ int main(int argc, char *argv [])
 	{
 		pwmSetRange(pin, pwm_info_t.arr);
 
-		if (model != PI_MODEL_AI_PRO && model != PI_MODEL_KUNPENG_PRO)
+		if (model != PI_MODEL_AI_PRO && model != PI_MODEL_KUNPENG_PRO && model != PI_MODEL_AI_STATION)
 			pwmSetClock(pin, pwm_info_t.div);
 
 		pwmWrite(pin, pwm_info_t.ccr);
@@ -187,7 +195,7 @@ int main(int argc, char *argv [])
 
 		//2.调节PWM频率
 
-		if (model != PI_MODEL_AI_PRO && model != PI_MODEL_KUNPENG_PRO)
+		if (model != PI_MODEL_AI_PRO && model != PI_MODEL_KUNPENG_PRO && model != PI_MODEL_AI_STATION)
 		{
 			//2.1通过设置分频系数调节PWM频率
 

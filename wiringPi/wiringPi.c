@@ -529,6 +529,16 @@ static int ORANGEPI_PIN_MASK_AIPRO[8][32] =  //[BANK]	[INDEX]
 	{-1,-1, 2, 3, 4, 5, 6, 7, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,},//GPIO7
 };
 
+static int ORANGEPI_PIN_MASK_AISTATION[6][32] =  //[BANK]	[INDEX]
+{
+	{-1,-1,-1,-1,-1,-1,-1, 8,  9,10,-1, 6, 5,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,},//GPIO0
+	{-1,-1,-1,-1,-1,-1,-1, 4,  3, 1, 2,13,12,11, 7,16, 17,15,14,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,},//GPIO1
+	{-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,},//GPIO2
+	{-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,},//GPIO3
+	{-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,},//GPIO4
+	{-1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1, -1, 0,-1,-1,-1,-1,-1,-1,},//GPIO5
+};
+
 int (*ORANGEPI_PIN_MASK)[32];
 
 // Extend wiringPi with other pin-based devices and keep track of
@@ -701,6 +711,7 @@ rk3588_soc_info rk3588_soc_info_t;
 rk3566_soc_info rk3566_soc_info_t;
 s905d3_gpio_info s905d3_gpio_info_t;
 a310b_gpio_info a310b_gpio_info_t;
+a310p_gpio_info a310p_gpio_info_t;
 jh7110_soc_info jh7110_soc_info_t;
 kyx1_soc_info kyx1_soc_info_t;
 
@@ -1507,6 +1518,29 @@ int pinToGpio_AIPRO[64] =
 	128,228,      //20,21
 	81,   3,      //22,23
 	230,229,      //24,25
+	-1,  -1,      //26,27
+	-1,  -1,      //28,29
+	-1,  -1,      //30,31
+
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // ... 47
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,// ... 63
+};
+
+int pinToGpio_AISTATION[64] =
+{
+	185, 41,      // 0, 1
+	 42, 40,      // 2, 3
+	 39, 12,      // 4  5
+	 11, 46,      // 6, 7
+	  7,  8,      // 8, 9
+	  9, 45,      //10,11
+	 44, 43,      //12,13
+	 50, 49,       //14,15
+	 47, 48,      //16,17
+	-1,  -1,      //18,19
+	-1,  -1,      //20,21
+	-1,  -1,      //22,23
+	-1,  -1,      //24,25
 	-1,  -1,      //26,27
 	-1,  -1,      //28,29
 	-1,  -1,      //30,31
@@ -2541,6 +2575,35 @@ int physToGpio_AIPRO[64] =
 	-1, -1, -1, -1, -1, -1, -1,   // ... 63
 };
 
+int physToGpio_AISTATION[64] =
+{
+	-1,        // 0
+	-1,  -1,   // 1, 2
+	-1,  -1,   // 3, 4
+	-1,  -1,   // 5, 6
+	185,139,   // 7, 8
+	-1, 138,   // 9, 10
+	41,  42,   // 11, 12
+	40,  -1,   // 13, 14
+	-1, 136,   // 15, 16
+	-1,  39,   // 17, 18
+	12,  -1,   // 19, 20
+	11,  46,   // 21, 22
+	7,    8,   // 23, 24
+	-1,   9,   // 25, 26
+	-1,  -1,   // 27, 28
+	45,  -1,   // 29, 30
+	44,  43,   // 31, 32
+	50,  -1,   // 33, 34
+	49,  47,   // 35, 36
+	48,  -1,   // 37, 38
+	-1,  -1,   // 39, 40
+
+	//Padding:
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,   // ... 56
+	-1, -1, -1, -1, -1, -1, -1,   // ... 63
+};
+
 // gpioToGPFSEL:
 //	Map a BCM_GPIO pin to it's Function Selection
 //	control port. (GPFSEL 0-5)
@@ -2927,6 +2990,7 @@ void piBoardId (int * model)
 	else if (strncmp(revision, "orangepiaipro.",           14) == 0) { *model = PI_MODEL_AI_PRO; }
 	else if (strncmp(revision, "orangepiaipro-20t.",       18) == 0) { *model = PI_MODEL_AI_PRO; }
 	else if (strncmp(revision, "orangepikunpengpro.",      19) == 0) { *model = PI_MODEL_KUNPENG_PRO; }
+	else if (strncmp(revision, "orangepiaistation.",       18) == 0) { *model = PI_MODEL_AI_STATION; }
 	else if (strncmp(revision, "orangepirv.",              11) == 0) { *model = PI_MODEL_RV; }
 	else if (strncmp(revision, "orangepirv2.",             12) == 0) { *model = PI_MODEL_RV2; }
 
@@ -3343,6 +3407,27 @@ void orangepi_pwm_set_tone(int pin,int freq)
 
 			break;
 
+		case PI_MODEL_AI_STATION:
+
+			if (freq > 0 && freq <= 32000)
+			{
+				if (pin != 185) {
+					printf("the pin you choose doesn't support hardware PWM\n");
+					printf("OPI:you can select wiringPi pin 185 for PWM pin\n");
+					printf("or you can use it in softPwm mode\n");
+					return;
+				}
+
+				pwm_period = 150000000 / freq;
+				orangepi_pwm_set_period(pin, pwm_period);
+				orangepi_pwm_set_act(pin, pwm_period / 2);
+
+				writeR(0, a310p_gpio_info_t.pwm_ch1_pwl_phyaddr);
+			} else {
+				printf("wiringop: pwm freq error!!! (1 ~ 32000hz)\n");
+			}
+			break;
+
 		default:
 			break;
 	}
@@ -3561,6 +3646,17 @@ void orangepi_pwm_set_clk(int pin,int clk)
 
 			break;
 
+		case PI_MODEL_AI_STATION:
+			if (pin != 185)
+			{
+				printf("the pin you choose doesn't support hardware PWM\n");
+				printf("OPI:you can select wiringPi pin 185 for PWM pin\n");
+				printf("or you can use it in softPwm mode\n");
+				return;
+			}
+			printf("wiringop: opiaistation pwm clock is 150M. Not support setting the clock!!!\n");
+			break;
+
 		default:
 			break;
 	}
@@ -3765,6 +3861,21 @@ void orangepi_pwm_set_period(int pin, unsigned int period_cys)
 
 			break;
 
+		case PI_MODEL_AI_STATION:
+			if (pin != 185)
+			{
+				printf("the pin you choose doesn't support hardware PWM\n");
+				printf("OPI:you can select wiringPi pin 185 for PWM pin\n");
+				printf("or you can use it in softPwm mode\n");
+				return;
+			}
+
+			a310p_gpio_info_t.pwm_prd1_phyaddr = (unsigned int)A310P_PWM_BASE + A310P_PWM_PRD1_OFFSET;
+			a310p_gpio_info_t.pwm_ch1_pwl_phyaddr = (unsigned int)A310P_PWM_BASE + A310P_PWM_CH1_PWL_OFFSET;
+			writeR(0, a310p_gpio_info_t.pwm_ch1_pwl_phyaddr);
+			writeR(period_cys, a310p_gpio_info_t.pwm_prd1_phyaddr);
+			break;
+
 		default:
 			break;
 	}
@@ -3944,6 +4055,31 @@ void orangepi_pwm_set_act(int pin, int act_cys)
 
 			writeR(0, a310b_gpio_info_t.pwm_ch3_pwl_phyaddr);
 			writeR(pwm_period - act_cys, a310b_gpio_info_t.pwm_ch3_pwh_phyaddr);
+
+			break;
+
+		case PI_MODEL_AI_STATION:
+			if (pin != 185)
+			{
+				printf("the pin you choose doesn't support hardware PWM\n");
+				printf("OPI:you can select wiringPi pin 185 for PWM pin\n");
+				printf("or you can use it in softPwm mode\n");
+				return;
+			}
+
+			a310p_gpio_info_t.pwm_prd1_phyaddr = (unsigned int)A310P_PWM_BASE + A310P_PWM_PRD1_OFFSET;
+			a310p_gpio_info_t.pwm_ch1_pwl_phyaddr = (unsigned int)A310P_PWM_BASE + A310P_PWM_CH1_PWL_OFFSET;
+			a310p_gpio_info_t.pwm_ch1_pwh_phyaddr = (unsigned int)A310P_PWM_BASE + A310P_PWM_CH1_PWH_OFFSET;
+
+			pwm_period = readR(a310p_gpio_info_t.pwm_prd1_phyaddr);
+			if (act_cys >= pwm_period || act_cys < 0)
+			{
+				printf("wiringop: error: value greater than period(%d)\n", pwm_period);
+				return;
+			}
+
+			writeR(0, a310p_gpio_info_t.pwm_ch1_pwl_phyaddr);
+			writeR(pwm_period - act_cys, a310p_gpio_info_t.pwm_ch1_pwh_phyaddr);
 
 			break;
 
@@ -5320,6 +5456,11 @@ int wiringPiSetup (void)
 			physToGpio = physToGpio_AIPRO;
 			ORANGEPI_PIN_MASK = ORANGEPI_PIN_MASK_AIPRO;
 			break;
+		case PI_MODEL_AI_STATION:
+			pinToGpio = pinToGpio_AISTATION;
+			physToGpio = physToGpio_AISTATION;
+			ORANGEPI_PIN_MASK = ORANGEPI_PIN_MASK_AISTATION;
+			break;
 		case PI_MODEL_RV:
 			pinToGpio = pinToGpio_RV;
 			physToGpio = physToGpio_RV;
@@ -5654,6 +5795,48 @@ int wiringPiSetup (void)
 
 			break;
 
+		case PI_MODEL_AI_STATION:
+			// IOMUX BASE
+			a310p_gpio_info_t.iomux_base_group0 = mmap(0, MAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_IOMUX_BASE_GROUP0 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.iomux_base_group0 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_IOMUX_BASE_GROUP0) failed: %s\n", strerror(errno));
+
+			a310p_gpio_info_t.iomux_base_group1 = mmap(0, MAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_IOMUX_BASE_GROUP1 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.iomux_base_group1 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_IOMUX_BASE_GROUP1) failed: %s\n", strerror(errno));
+
+			a310p_gpio_info_t.iomux_base_group4 = mmap(0, MAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_IOMUX_BASE_GROUP4 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.iomux_base_group4 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_IOMUX_BASE_GROUP4) failed: %s\n", strerror(errno));
+
+			a310p_gpio_info_t.iomux_base_group5 = mmap(0, MAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_IOMUX_BASE_GROUP5 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.iomux_base_group5 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_IOMUX_BASE_GROUP5) failed: %s\n", strerror(errno));
+
+			// GPIO BASE
+			a310p_gpio_info_t.gpio_base_group0 = mmap(0, MAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_GPIO_BASE_GROUP0 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.gpio_base_group0 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_GPIO_BASE_GROUP0) failed: %s\n", strerror(errno));
+
+			a310p_gpio_info_t.gpio_base_group1 = mmap(0, MAP_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_GPIO_BASE_GROUP1 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.gpio_base_group1 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_GPIO_BASE_GROUP1) failed: %s\n", strerror(errno));
+
+			a310p_gpio_info_t.gpio_base_group4 = mmap(0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_GPIO_BASE_GROUP4 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.gpio_base_group4 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_GPIO_BASE_GROUP4) failed: %s\n", strerror(errno));
+
+			a310p_gpio_info_t.gpio_base_group5 = mmap(0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_GPIO_BASE_GROUP5 & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.gpio_base_group5 == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_GPIO_BASE_GROUP5) failed: %s\n", strerror(errno));
+
+			// PWM BASE
+			a310p_gpio_info_t.pwm_base = mmap(0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, A310P_PWM_BASE & ~MAP_MASK);
+			if ((int32_t)(unsigned long)a310p_gpio_info_t.pwm_base == -1)
+				return wiringPiFailure(WPI_ALMOST, "wiringPiSetup: mmap (A310P_PMW_BASE) failed: %s\n", strerror(errno));
+
+			break;
+
 		case PI_MODEL_RV:
 
 			jh7110_soc_info_t.sys_iomux_base = (uint32_t *)mmap(0, BLOCK_SIZE, PROT_READ|PROT_WRITE, MAP_SHARED, fd, JH7110_SYS_IOMUX_BASE);
@@ -5839,6 +6022,10 @@ int wiringPiSetupSys (void)
 		case PI_MODEL_KUNPENG_PRO:
 			pinToGpio =  pinToGpio_AIPRO;
 			physToGpio = physToGpio_AIPRO;
+			break;
+		case PI_MODEL_AI_STATION:
+			pinToGpio = pinToGpio_AISTATION;
+			physToGpio = physToGpio_AISTATION;
 			break;
 		default:
 			pinToGpio =  pinToGpio_H3;
@@ -6069,6 +6256,34 @@ unsigned int readR(unsigned int addr)
 
 			return val;
 
+			break;
+
+		case PI_MODEL_AI_STATION:
+			mmap_base = (addr & 0xfffff000);
+			mmap_seek = (addr & MAP_MASK);
+
+			if(mmap_base == A310P_GPIO_BASE_GROUP0)
+				val = *((unsigned int *) (a310p_gpio_info_t.gpio_base_group0 + mmap_seek));
+			else if(mmap_base == A310P_GPIO_BASE_GROUP1)
+				val = *((unsigned int *) (a310p_gpio_info_t.gpio_base_group1 + mmap_seek));
+			else if(mmap_base == A310P_GPIO_BASE_GROUP4)
+				val = *((unsigned int *) (a310p_gpio_info_t.gpio_base_group4 + mmap_seek));
+			else if(mmap_base == A310P_GPIO_BASE_GROUP5)
+				val = *((unsigned int *) (a310p_gpio_info_t.gpio_base_group5 + mmap_seek));
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP0)
+				val = *((unsigned int *) (a310p_gpio_info_t.iomux_base_group0 + mmap_seek));
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP1)
+				val = *((unsigned int *) (a310p_gpio_info_t.iomux_base_group1 + mmap_seek));
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP4)
+				val = *((unsigned int *) (a310p_gpio_info_t.iomux_base_group4 + mmap_seek));
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP5)
+				val = *((unsigned int *) (a310p_gpio_info_t.iomux_base_group5 + mmap_seek));
+			else if(mmap_base == A310P_PWM_BASE)
+                val = *((unsigned int *)(a310p_gpio_info_t.pwm_base + mmap_seek));
+			else
+				printf("readR: mmap_base %x is error ", mmap_base);
+
+			return val;
 			break;
 
 		case PI_MODEL_RV:
@@ -6309,6 +6524,34 @@ void writeR(unsigned int val, unsigned int addr)
 			// pwm
 			else if(mmap_base == A310B_PWM_BASE)
 				*((unsigned int *) ((unsigned char *)a310b_gpio_info_t.pwm_base + mmap_seek)) = val;
+			else
+				printf("writeR: mmap_base %x is error!\n", mmap_base);
+
+			break;
+
+		case PI_MODEL_AI_STATION:
+			mmap_base = (addr & 0xfffff000);
+			mmap_seek = (addr & MAP_MASK);
+			if(mmap_base == A310P_GPIO_BASE_GROUP0)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.gpio_base_group0 + mmap_seek)) = val;
+			else if(mmap_base == A310P_GPIO_BASE_GROUP1)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.gpio_base_group1 + mmap_seek)) = val;
+			else if(mmap_base == A310P_GPIO_BASE_GROUP4)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.gpio_base_group4 + mmap_seek)) = val;
+			else if(mmap_base == A310P_GPIO_BASE_GROUP5)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.gpio_base_group5 + mmap_seek)) = val;
+			// iomux
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP0)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.iomux_base_group0 + mmap_seek)) = val;
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP1)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.iomux_base_group1 + mmap_seek)) = val;
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP4)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.iomux_base_group4 + mmap_seek)) = val;
+			else if(mmap_base == A310P_IOMUX_BASE_GROUP5)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.iomux_base_group5 + mmap_seek)) = val;
+			// pwm
+			else if(mmap_base == A310P_PWM_BASE)
+				*((unsigned int *) ((unsigned char *)a310p_gpio_info_t.pwm_base + mmap_seek)) = val;
 			else
 				printf("writeR: mmap_base %x is error!\n", mmap_base);
 
@@ -6665,6 +6908,82 @@ int orangepi_get_gpio_mode(int pin)
 
 			return mode;
 
+			break;
+
+		case PI_MODEL_AI_STATION:
+			if (ORANGEPI_PIN_MASK[bank][index] != -1) {
+				switch (bank) {
+					case 0:
+						gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP0 + A310P_GPIO_DIRECTION_OFFSET;
+						if (index >= 7 && index <= 12){
+							iomux_phyaddr = A310P_IOMUX_BASE_GROUP0 + 0x44 + (index-7) * 4;
+							iomux_val = 2;
+						}
+						break;
+					case 1:
+						gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP1 + A310P_GPIO_DIRECTION_OFFSET;
+						if (index >= 0 && index <= 20){
+							iomux_phyaddr = A310P_IOMUX_BASE_GROUP1 + 0x80 + index * 4;
+							iomux_val = 1;}
+						else if (index >= 21 && index <= 27){
+							iomux_phyaddr = A310P_IOMUX_BASE_GROUP1 + 0xD4 + (index-21) * 4;
+							iomux_val = 0;}
+						else if (index >= 28 && index <= 31){
+							iomux_phyaddr = A310P_IOMUX_BASE_GROUP1 + 0xF0 + (index-28) * 4;
+							iomux_val = 1;}
+						break;
+					case 4:
+                        gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP4 + A310P_GPIO_DIRECTION_OFFSET;
+                        if (index >= 8 && index <= 11){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP4 + 0x8 + (index-8) * 4;
+							iomux_val = 1;}
+                        break;
+					case 5:
+                        gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP5 + A310P_GPIO_DIRECTION_OFFSET;
+                        if (index >= 7 && index <= 13){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0x78 + (index-7) * 4;
+							iomux_val = 0;}
+						else if (index >= 14 && index <= 15){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xB8 + (index-14) * 4;
+							iomux_val = 1;}
+						else if (index >= 16 && index <= 21){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0x98 + (index-16) * 4;
+							iomux_val = 1;}
+						else if (index >= 22 && index <= 23){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xB0 + (index-22) * 4;
+							iomux_val = 1;}
+						else if (index >= 24 && index <= 27){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xC0 + (index-24) * 4;
+							iomux_val = 1;}
+						else if (index >= 28 && index <= 31){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xD0 + (index-28) * 4;
+							iomux_val = 0;}
+                        break;
+                    default:
+                        printf("bank is error!!\n");
+						break;
+				}
+				if (iomux_phyaddr != 0) {
+					regval = readR(iomux_phyaddr);
+					if (bank != 0 && regval == iomux_val) {
+						regval = readR(gpio_dir_phyaddr);
+						mode = (regval >> index) & 0x1;
+					}
+					else if (bank == 0 && index >= 7 && index <= 12){
+						if (regval & 0x1) 
+							mode = 4;
+						if ((regval >> 1) & 0x1) {
+							regval = readR(gpio_dir_phyaddr);
+							mode = (regval >> index) & 0x1;
+						}
+					}
+					else if (regval == 0 && pin == 185)
+						mode = 2;
+					else if (regval != iomux_val)
+						mode = 0;
+				}
+			}
+			return mode;
 			break;
 
 		case PI_MODEL_RV:
@@ -7888,6 +8207,100 @@ int orangepi_set_gpio_mode(int pin, int mode)
 
 			break;
 
+		case PI_MODEL_AI_STATION:
+			if (ORANGEPI_PIN_MASK[bank][index] != -1) {
+				switch (bank) {
+					case 0:
+						gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP0 + A310P_GPIO_DIRECTION_OFFSET;
+                		if (index >= 7 && index <= 12){
+                		    iomux_phyaddr = A310P_IOMUX_BASE_GROUP0 + 0x44 + (index-7) * 4;
+							iomux_val = 2;}
+						break;
+					case 1:
+						gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP1 + A310P_GPIO_DIRECTION_OFFSET;
+						if (index >= 0 && index <= 20){
+							iomux_phyaddr = A310P_IOMUX_BASE_GROUP1 + 0x80 + index * 4;
+							iomux_val = 1;}
+						else if (index >= 21 && index <= 27){
+							iomux_phyaddr = A310P_IOMUX_BASE_GROUP1 + 0xD4 + (index-21) * 4;
+							iomux_val = 0;}
+						else if (index >= 28 && index <= 31){
+							iomux_phyaddr = A310P_IOMUX_BASE_GROUP1 + 0xF0 + (index-28) * 4;
+							iomux_val = 1;}
+						break;
+					case 4:
+                        gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP4 + A310P_GPIO_DIRECTION_OFFSET;
+                        if (index >= 8 && index <= 11){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP4 + 0x8 + (index-8) * 4;
+							iomux_val = 1;}
+                        break;
+					case 5:
+                        gpio_dir_phyaddr = A310P_GPIO_BASE_GROUP5 + A310P_GPIO_DIRECTION_OFFSET;
+                        if (index >= 7 && index <= 13){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0x78 + (index-7) * 4;
+							iomux_val = 0;}
+						else if (index >= 14 && index <= 15){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xB8 + (index-14) * 4;
+							iomux_val = 1;}
+						else if (index >= 16 && index <= 21){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0x98 + (index-16) * 4;
+							iomux_val = 1;}
+						else if (index >= 22 && index <= 23){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xB0 + (index-22) * 4;
+							iomux_val = 1;}
+						else if (index >= 24 && index <= 27){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xC0 + (index-24) * 4;
+							iomux_val = 1;}
+						else if (index >= 28 && index <= 31){
+                            iomux_phyaddr = A310P_IOMUX_BASE_GROUP5 + 0xD0 + (index-28) * 4;
+							iomux_val = 0;}
+                        break;
+					default:
+						printf("bank is error!!\n");
+						break;
+				}
+				writeR(iomux_val, iomux_phyaddr);
+
+				if(INPUT == mode)
+				{
+					regval = readR(gpio_dir_phyaddr);
+					regval &= ~(1 << index);
+					writeR(regval, gpio_dir_phyaddr);
+
+					if (wiringPiDebug) {
+						regval = readR(gpio_dir_phyaddr);
+						printf("Input mode set over reg val: %#x\n",regval);
+					}
+				}
+				else if(OUTPUT == mode)
+				{
+					regval = readR(gpio_dir_phyaddr);
+					regval |= (1 << index);
+					writeR(regval, gpio_dir_phyaddr);
+
+					if (wiringPiDebug){
+						regval = readR(gpio_dir_phyaddr);
+						printf("OUTPUT mode set over reg val: %#x\n",regval);
+					}
+				}
+				else if(PWM_OUTPUT == mode)
+				{
+					if (pin != 185)
+					{
+						printf("the pin you choose doesn't support hardware PWM\n");
+						printf("OPI:you can select wiringPi pin 185 for PWM pin\n");
+						printf("or you can use it in softPwm mode\n");
+						return -1;
+					}
+					writeR(0, iomux_phyaddr);
+					pwm_prd_default = 150000;
+					orangepi_pwm_set_period(pin, pwm_prd_default);
+					orangepi_pwm_set_act(pin, pwm_prd_default / 2);
+					writeR(0, a310p_gpio_info_t.pwm_ch1_pwl_phyaddr);
+				}
+			}
+			break;
+
 		case PI_MODEL_RV:
 
 		        offset = 4 * (pin / 4);
@@ -8426,6 +8839,53 @@ int orangepi_digitalWrite(int pin, int value)
 
 			break;
 
+		case PI_MODEL_AI_STATION:
+			switch (bank) {
+				case 0:
+					phyaddr = A310P_GPIO_BASE_GROUP0 + A310P_GPIO_SET_VALUE_OFFSET;
+					break;
+				case 1:
+					phyaddr = A310P_GPIO_BASE_GROUP1 + A310P_GPIO_SET_VALUE_OFFSET;
+					break;
+				case 4:
+					phyaddr = A310P_GPIO_BASE_GROUP4 + A310P_GPIO_SET_VALUE_OFFSET;
+					break;
+				case 5:
+					phyaddr = (unsigned int)A310P_GPIO_BASE_GROUP5 + A310P_GPIO_SET_VALUE_OFFSET;
+					break;
+				default:
+					printf("bank is error!!\n");
+					break;
+			}
+
+			/* Ignore unused gpio */
+			if (ORANGEPI_PIN_MASK[bank][index] != -1)
+			{
+				regval = readR(phyaddr);
+				if (wiringPiDebug)
+					printf("befor write reg val: 0x%x,index:%d\n", regval, index);
+
+				if(0 == value)
+				{
+					regval &= ~(1 << index);
+					writeR(regval, phyaddr);
+					regval = readR(phyaddr);
+					if (wiringPiDebug)
+						printf("LOW val set over reg val: 0x%x\n", regval);
+				}
+				else
+				{
+					regval |= (1 << index);
+					writeR(regval, phyaddr);
+					regval = readR(phyaddr);
+					if (wiringPiDebug)
+						printf("HIGH val set over reg val: 0x%x\n", regval);
+				}
+			}
+			else
+				printf("Pin mode failed!\n");
+			break;
+
 		case PI_MODEL_RV:
 			dout = 0;
 			offset = 4 * (pin / 4);
@@ -8606,6 +9066,27 @@ int orangepi_digitalRead(int pin)
 					break;
 				case 7:
 					phyaddr = (unsigned int)A310B_GPIO_BASE_GROUP7 + A310B_GPIO_GET_VALUE_OFFSET;
+					break;
+				default:
+					printf("bank is error!!\n");
+			}
+
+			break;
+
+			case PI_MODEL_AI_STATION:
+
+			switch (bank) {
+				case 0:
+					phyaddr = A310P_GPIO_BASE_GROUP0 + A310P_GPIO_GET_VALUE_OFFSET;
+					break;
+				case 1:
+					phyaddr = A310P_GPIO_BASE_GROUP1 + A310P_GPIO_GET_VALUE_OFFSET;
+					break;
+				case 4:
+					phyaddr = A310P_GPIO_BASE_GROUP4 + A310P_GPIO_GET_VALUE_OFFSET;
+					break;
+				case 5:
+					phyaddr = (unsigned int)A310P_GPIO_BASE_GROUP5 + A310P_GPIO_GET_VALUE_OFFSET;
 					break;
 				default:
 					printf("bank is error!!\n");
