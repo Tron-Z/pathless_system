@@ -197,4 +197,5 @@
 	u-boot,dm-pre-reloc;
         pinctrl-names = "default";
         pinctrl-0 = <&fspim0_pins>;
+	status = "disabled";
 };
