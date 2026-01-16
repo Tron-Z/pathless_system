@@ -1088,7 +1088,7 @@ def bin_data_2_info(info_from_bin, read_out, ddrbin_index, version, info_from_tx
                             info_from_bin[key]['value'] = temp_value
                             #print(f"D: {key} = {value} {value['position']}={temp_value}")
             elif ddrbin_index[index_name]['offset'] != 0 and 'skew' in index_name:
-                if chip_info == 'rk3528':
+                if chip_info in ('rk3528', 'rk3538'):
                     for key, value in info_from_bin.items():
                         if value['index'] == index_name and value['version'] <= version:
                             position_1 = value['position'][ : value['position'].find('_')]
@@ -1144,7 +1144,7 @@ def modefy_2_bin_data(info_from_txt, write_in, ddrbin_index, version):
                         write_in[head_info_name][value['position']] = position_value
                         #print(f"D: {key} = {value}, {value['position']}={position_value}")
             elif ddrbin_index[index_name]['offset'] != 0 and 'skew' in index_name:
-                if chip_info == 'rk3528':
+                if chip_info in ('rk3528', 'rk3538'):
                     write_in.update({'skew_info' : rk3528_skew_info})
                     if rk3528_skew_info['skew_sub_version'] == 0x1:
                         for key, value in info_from_txt.items():
@@ -1185,7 +1185,7 @@ def write_in_bin_data_v2(filebin, bin_skew_offset, write_in, ddrbin_index, info_
                         print("write bin {} to file fail".format(head_info_name))
                         return -1
         elif ddrbin_index[index_name]['offset'] != 0 and 'skew' in index_name:
-            if chip_info == 'rk3528' and write_in[head_info_name]["skew_sub_version"] == 1:
+            if chip_info in ('rk3528', 'rk3538') and write_in[head_info_name]["skew_sub_version"] == 1:
                 filebin.seek(bin_skew_offset + (ddrbin_index[index_name]['offset'] - 1) * 4)
                 index_size = ddrbin_index[index_name]['size']
                 for key in write_in[head_info_name]:
@@ -1360,7 +1360,7 @@ def bin_data_readout(filebin, ddrbin_index, read_out, bin_skew_offset, version, 
                 except:
                     print("read skew_sub_ver from bin file fail")
                     return -1
-                if chip_info == 'rk3528' and skew_sub_ver == 0x1:
+                if chip_info in ('rk3528', 'rk3538') and skew_sub_ver == 0x1:
                     for i in rk3528_skew_info:
                         if i == 'skew_sub_version':
                             rk3528_skew_info[i] = skew_sub_ver
@@ -1451,7 +1451,7 @@ def ddrbin_tool(argc, argv):
     verinfo_editable_offset = 0
     verinfo_editable_length = 17
 
-    print("version v1.30 20260105")
+    print("version v1.31 20260116")
     print("python {}, {}, {}".format(sys.version.split(' ', 1)[0], platform.system(), platform.machine()))
     if sys.version_info < (3, 6):
         print("Warning: Please installed Python 3.6 or later.")

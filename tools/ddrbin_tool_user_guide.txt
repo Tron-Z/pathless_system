@@ -490,6 +490,8 @@ The support platform:
 |          platform         |   ddrbin version   |      calculate one step delay(ps)          |
 |          RK3528           |        V1.06       |    1000000 / ddr*_skew_freq_mhz / 128      |
 |---------------------------|--------------------|--------------------------------------------|
+|          RK3538           |        V1.03       |    1000000 / ddr*_skew_freq_mhz / 128      |
+|---------------------------|--------------------|--------------------------------------------|
 
 For RK3528, the skew one step is 7.398ps when ddr*_skew_freq_mhz is 1056.
 
