@@ -222,6 +222,22 @@ uart_id_2_iomux = {
                 'uart7' : {'m0' : [0xffa28000, 0xff560068, 0, 0xf0004000, 0xff560068, 0, 0xf000400, 0, 0, 0],
                            'm1' : [0xffa28000, 0xff560028, 0, 0xf0004000, 0xff560028, 0, 0xf000400, 0, 0, 0]},
                 },
+    ('rk3538',) : {
+                'uart0' : {'m0' : [0xfdc50000, 0xfd1b000c, 0, 0xf0001000, 0xfd1b0010, 0, 0xf0001, 0, 0, 0],
+                           'm1' : [0xfdc50000, 0xfd1e0040, 0, 0xf0002, 0xfd1e0040, 0, 0xf00020, 0, 0, 0]},
+                'uart1' : {'m0' : [0xfe050000, 0xfd2200cc, 0, 0xf000200, 0xfd2200cc, 0, 0xf00020, 0, 0, 0],
+                           'm1' : [0xfe050000, 0xfd2200c0, 0, 0xf0002000, 0xfd2200c0, 0, 0xf000300, 0, 0, 0],
+                           'm2' : [0xfe050000, 0xfd2100ac, 0, 0xf0004, 0xfd2100a4, 0, 0xf000600, 0, 0, 0]},
+                'uart2' : {'m0' : [0xfe060000, 0xfd1f0064, 0, 0xf0001000, 0xfd1f0068, 0, 0xf0001, 0, 0, 0],
+                           'm1' : [0xfe060000, 0xfd2100a4, 0, 0xf0003000, 0xfd2100a8, 0, 0xf0003, 0, 0, 0]},
+                'uart3' : {'m0' : [0xfe070000, 0xfd2200c8, 0, 0xf0002000, 0xfd2200cc, 0, 0xf0002, 0, 0, 0],
+                           'm1' : [0xfe070000, 0xfd2100ac, 0, 0xf000300, 0xfd2100ac, 0, 0xf0003000, 0, 0, 0],
+                           'm2' : [0xfe070000, 0xfd1c0018, 0, 0xf00010, 0xfd1c0018, 0, 0xf0001, 0, 0, 0]},
+                'uart4' : {'m0' : [0xfe080000, 0xfd1e0040, 0, 0xf0003, 0xfd1e0040, 0, 0xf00030, 0, 0, 0],
+                           'm1' : [0xfe080000, 0xfd1d0020, 0, 0xf000300, 0xfd1d0020, 0, 0xf0003000, 0, 0, 0]},
+                'uart5' : {'m0' : [0xfe090000, 0xfd2100a0, 0, 0xf00040, 0xfd2100a0, 0, 0xf0003, 0, 0, 0],
+                           'm1' : [0xfe090000, 0xfd2100b0, 0, 0xf000400, 0xfd2100b0, 0, 0xf0004, 0, 0, 0]},
+                },
     ('rk3588',) : {
                 'uart0' : {'m0' : [0xfd890000, 0xfd5f4008, 0, 0xff0044, 0, 0, 0, 0, 0, 0],
                            'm1' : [0xfd890000, 0xfd5f0008, 0, 0xff0044, 0, 0, 0, 0, 0, 0],
@@ -1451,7 +1467,7 @@ def ddrbin_tool(argc, argv):
     verinfo_editable_offset = 0
     verinfo_editable_length = 17
 
-    print("version v1.31 20260116")
+    print("version v1.32 20260127")
     print("python {}, {}, {}".format(sys.version.split(' ', 1)[0], platform.system(), platform.machine()))
     if sys.version_info < (3, 6):
         print("Warning: Please installed Python 3.6 or later.")
