@@ -769,8 +769,8 @@ static char * physNames_ZERO_3_W[64] =
 	"   SCL.0", "GND     ",
 	"  PWM0-0", "TXD.0   ",
 	"     GND", "RXD.0   ",
-	"     PD3", "PB5     ",
-	"     PD4", "GND     ",
+	"     PB0", "PB5     ",
+	"     PB1", "GND     ",
 	"     PE9", "PL2     ",
 	"    3.3V", "PL3     ",
 	"  MOSI.3", "GND     ",
@@ -780,9 +780,9 @@ static char * physNames_ZERO_3_W[64] =
 	"     PL5", "PL4     ",
 	"    PE12", "GND     ",
 	"    PE13", "PD1     ",
-	"     PD2", "GND     ",
-	"     PB6", "PB0     ",
-	"     PB1", "PB8     ",
+	"     PD3", "GND     ",
+	"     PB6", "PD2     ",
+	"     PD4", "PB8     ",
 	"     GND", "PB7     ",
 };
 
