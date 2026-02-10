@@ -1,5 +1,17 @@
 # RV1103B Release Note
 
+## rv1103b_usbplug_auto_merge_v1.11.bin
+
+| Date       | File                               | Build commit                                   | Severity |
+| ---------- | :--------------------------------- | ---------------------------------------------- | -------- |
+| 2026-02-10 | rv1103b_usbplug_auto_merge_v1.11.bin | 3bb9568b5 | moderate |
+
+### New
+
+1. Enable SFDP.
+
+------
+
 ## rv1103b_ddr_924MHz{_tb}_v1.06.bin
 
 | Date       | File                              | Build commit | Severity  |
