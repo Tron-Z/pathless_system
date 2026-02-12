@@ -191,16 +191,16 @@ function check_doc()
 	fi
 
 	# check horizontal line
+	if [ "${END_LINE_1}" != "+" ]; then
+		echo "ERROR: ${DOC}: Please add blank line after horizontal line '------'"
+		exit 1
+	fi
 	if [ "${END_LINE_2}" != "+------" ]; then
 		echo "ERROR: ${DOC}: Please add horizontal line '------' at the last of new content"
 		exit 1
 	fi
 	if [ "${END_LINE_3}" != "+" ]; then
 		echo "ERROR: ${DOC}: Please add blank line before horizontal line '------'"
-		exit 1
-	fi
-	if [ "${END_LINE_1}" != "+" ]; then
-		echo "ERROR: ${DOC}: Please add blank line after horizontal line '------'"
 		exit 1
 	fi
 
