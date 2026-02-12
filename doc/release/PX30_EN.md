@@ -1,5 +1,17 @@
 # PX30 Release Note
 
+## px30_bl31_v1.35.elf
+
+| Date       | File                  | Build commit | Severity  |
+| ---------- | :-------------------- | ------------ | --------- |
+| 2026-02-12 | px30_bl31_v1.35.elf | afdac37e9 | important |
+
+### New
+
+1. Improve the stability of OTP.
+
+------
+
 ## px30_ddr_333MHz_v2.12.bin
 
 | Date       | file                      | Build commit | Severity  |
