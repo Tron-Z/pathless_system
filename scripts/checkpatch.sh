@@ -24,7 +24,7 @@ function check_doc()
 		DOC=`git log ${ARG_COMMIT} -1 --name-only | sed -n "/_CN\.md/p"`
 	fi
 
-	echo "Checking doc: ${DOC}"
+	echo "    - ${DOC}"
 
 	# check DOS encoding
 	git show ${ARG_COMMIT} -1 ${DOC} | sed -n "/^+/p" > ${DIFF_DOC_ALL}
@@ -277,6 +277,7 @@ function check_docs()
 		return;
 	fi
 
+	echo "Checking doc ..."
 	if git log ${ARG_COMMIT} -1 --name-only | grep -Eq '\.bin|\.elf' ; then
 		DOC_CN=`git log ${ARG_COMMIT} -1 --name-only | sed -n "/_CN\.md/p"`
 		DOC_EN=`git log ${ARG_COMMIT} -1 --name-only | sed -n "/_EN\.md/p"`
@@ -377,12 +378,13 @@ function pack_trust_image()
 
 function check_dirty()
 {
+	echo "Checking clean ..."
 	for FILE in `find -name '*spl*.bin' -o -name '*tpl*.bin' -o -name '*usbplug*.bin' -o -name '*bl31*.elf' -o -name '*bl32*.bin'`; do
 		if [[ "${FILE}" == *fspi1* ]]; then
 			echo "Skip clean: ${FILE}"
 			continue;
 		fi
-		echo "Checking clean: ${FILE}"
+		echo "    - ${FILE}"
 		if strings ${FILE} | grep '\-dirty ' ; then
 			echo "ERROR: ${FILE} is dirty"
 			exit 1
@@ -392,8 +394,9 @@ function check_dirty()
 
 function check_stripped()
 {
+	echo "Checking strip ..."
 	for FILE in `find -name '*bl31*.elf'`; do
-		echo "Checking strip: ${FILE}"
+		echo "    - ${FILE}"
 		INFO=`file ${FILE}`
 		if echo ${INFO} | grep -q "not stripped" ; then
 			echo "ERROR: ${FILE} is not stripped"
@@ -415,7 +418,7 @@ function check_mode()
 function check_version()
 {
 	echo "Checking fwver..."
-	git whatchanged -1 --name-only | sed -n '/bin\//p' | sed -n '/ddr/p; /tpl/p; /spl/p; /bl31/p; /bl32/p; /tee/p;' | while read FILE; do
+	git whatchanged ${ARG_COMMIT} -1 --name-only | sed -n '/bin\//p' | sed -n '/ddr/p; /tpl/p; /spl/p; /bl31/p; /bl32/p; /tee/p;' | while read FILE; do
 		if ! test -f ${FILE}; then
 			continue
 		fi
@@ -438,6 +441,8 @@ function check_version()
 			echo "ERROR: ${FILE}: No \"fwver: \" string found in binary"
 			exit 1
 		fi
+
+		echo "    - ${FILE}: '${NAME_VER}'"
 		FW_VER=`strings ${FILE} | grep -m 1 -o 'fwver: v[1-9][.][0-9][0-9]' | awk '{ print $2 }'`
 		if [ "${NAME_VER}" != "${FW_VER}" ] ; then
 			echo "ERROR: ${FILE}: file version is '${NAME_VER}', but fw version is '${FW_VER}'."
