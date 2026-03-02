@@ -1,5 +1,19 @@
 # rv1126b Release Note
 
+## rv1126b_spl{, _ipc}_v1.06.bin
+
+| Date       | File                  | Build commit | Severity  |
+| ---------- | :----------------------- | ----------- | -------- |
+| 2026-03-02 | rv1126b_spl{, _ipc}_v1.06.bin | a27a89c5fa1   | important     |
+
+### Fixed
+
+| Index | Severity  | Update                                  | Issue description                   | Issue source |
+| ----- | --------- | --------------------------------------- | ----------------------------------- | ------------ |
+| 1     | important  | Avoid premature decompression termination by decom. | SPL hw decompression of uboot failed. | -            |
+
+------
+
 ## rv1126b{p}_ddr_{1332, 1056}MHz_v1.10.bin
 
 | Date       | File                                     | Build commit | Severity |
