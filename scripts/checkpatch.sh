@@ -220,7 +220,7 @@ function check_doc()
 
 	# check horizontal line
 	if [ "${END_LINE_1}" != "+" ]; then
-		echo "ERROR: ${DOC}: Please add blank line after horizontal line '------'"
+		echo "ERROR: ${DOC} ${END_LINE_1}: Please add blank line after horizontal line '------'"
 		exit 1
 	fi
 	if [ "${END_LINE_2}" != "+------" ]; then
