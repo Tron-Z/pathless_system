@@ -8,17 +8,27 @@ DIFF_DOC_FIXED="scripts/.diff_fixed.txt"
 LAST_SEVERITY=
 LAST_DOC=
 
+# Helper function to check if severity is valid
+function is_valid_severity()
+{
+	local severity="$1"
+	local critical="$2"
+	local important="$3"
+	local moderate="$4"
+	[ "${severity}" = "${critical}" ] || [ "${severity}" = "${important}" ] || [ "${severity}" = "${moderate}" ]
+}
+
 function check_doc()
 {
 	local TOP_SEVERITY LANGUAGE=$1
 
 	if [ "${LANGUAGE}" == "EN" ] ; then
-		SVT_CRITIAL="critical"
+		SVT_CRITICAL="critical"
 		SVT_IMPORTANT="important"
 		SVT_MODERATE="moderate"
 		DOC=`git log ${ARG_COMMIT} -1 --name-only | sed -n "/_EN\.md/p"`
 	else
-		SVT_CRITIAL="紧急"
+		SVT_CRITICAL="紧急"
 		SVT_IMPORTANT="重要"
 		SVT_MODERATE="普通"
 		DOC=`git log ${ARG_COMMIT} -1 --name-only | sed -n "/_CN\.md/p"`
@@ -28,8 +38,11 @@ function check_doc()
 
 	# check DOS encoding
 	git show ${ARG_COMMIT} -1 ${DOC} | sed -n "/^+/p" > ${DIFF_DOC_ALL}
-	git show ${ARG_COMMIT} -1 ${DOC} | sed -n "/^+/p" > ${DIFF_DOC_ALL}.dos
-	dos2unix ${DIFF_DOC_ALL}.dos >/dev/null 2>&1
+	cp ${DIFF_DOC_ALL} ${DIFF_DOC_ALL}.dos
+	if ! dos2unix ${DIFF_DOC_ALL}.dos >/dev/null 2>&1; then
+		echo "ERROR: dos2unix failed. Install it by: sudo apt-get install dos2unix"
+		exit 1
+	fi
 	CSUM1=`md5sum ${DIFF_DOC_ALL} | awk '{ print $1 }'`
 	CSUM2=`md5sum ${DIFF_DOC_ALL}.dos | awk '{ print $1 }'`
 	if [ "${CSUM1}" != "${CSUM2}" ]; then
@@ -38,15 +51,30 @@ function check_doc()
 	fi
 
 	TITLE=`sed -n "/^+## /p" ${DIFF_DOC_ALL} | tr -d " +#"`
-	DATE=`sed -n "/^+| 20[0-9][0-9]-/p" ${DIFF_DOC_ALL} | tr -d " " | awk -F "|" '{ print $2 }'`
-	YEAR=`sed -n "/^+| 20[0-9][0-9]-/p" ${DIFF_DOC_ALL} | tr -d " " | awk -F "|" '{ print $2 }' | awk -F "-" '{ print $1 }'`
-	MON=`sed -n "/^+| 20[0-9][0-9]-/p" ${DIFF_DOC_ALL} | tr -d " " | awk -F "|" '{ print $2 }' | awk -F "-" '{ print $2 }'`
-	FILE=`sed -n "/^+| 20[0-9][0-9]-/p" ${DIFF_DOC_ALL} | tr -d " " | awk -F "|" '{ print $3 }'`
-	COMMIT=`sed -n "/^+| 20[0-9][0-9]-/p" ${DIFF_DOC_ALL} | tr -d " " | awk -F "|" '{ print $4 }'`
-	SEVERITY=`sed -n "/^+| 20[0-9][0-9]-/p" ${DIFF_DOC_ALL} | tr -d " " | awk -F "|" '{ print $5 }'`
-	END_LINE_3=`tail -n 3 ${DIFF_DOC_ALL} | sed -n '1p'`
-	END_LINE_2=`tail -n 3 ${DIFF_DOC_ALL} | sed -n '2p'`
-	END_LINE_1=`tail -n 3 ${DIFF_DOC_ALL} | sed -n '3p'`
+
+	# Parse table line once (avoid repeated sed/awk calls)
+	TABLE_LINE=$(sed -n "/^+| 20[0-9][0-9]-/p" ${DIFF_DOC_ALL} | tr -d " ")
+	if [ -z "${TABLE_LINE}" ]; then
+		echo "ERROR: ${DOC}: No valid date table line found (expected format: | YYYY-MM-DD | ...)"
+		exit 1
+	fi
+	DATE=$(echo "$TABLE_LINE" | awk -F "|" '{ print $2 }')
+	YEAR=$(echo "$DATE" | awk -F "-" '{ print $1 }')
+	MON=$(echo "$DATE" | awk -F "-" '{ print $2 }')
+	FILE=$(echo "$TABLE_LINE" | awk -F "|" '{ print $3 }')
+	COMMIT=$(echo "$TABLE_LINE" | awk -F "|" '{ print $4 }')
+	SEVERITY=$(echo "$TABLE_LINE" | awk -F "|" '{ print $5 }')
+
+	# Get last 3 lines at once (avoid repeated tail calls)
+	END_LINES=($(tail -n 3 ${DIFF_DOC_ALL}))
+	if [ ${#END_LINES[@]} -lt 3 ]; then
+		echo "ERROR: ${DOC}: Insufficient lines in document (need at least 3 lines at end)"
+		exit 1
+	fi
+	END_LINE_3="${END_LINES[0]}"
+	END_LINE_2="${END_LINES[1]}"
+	END_LINE_1="${END_LINES[2]}"
+
 	HOST_YEAR=`date +%Y`
 	HOST_MON=`date +%m`
 	# echo "### ${COMMIT}, ${SEVERITY}, ${TITLE}, ${FILE}"
@@ -185,7 +213,7 @@ function check_doc()
 	done
 
 	# check severity
-	if [ "${SEVERITY}" != "${SVT_CRITIAL}" -a "${SEVERITY}" != "${SVT_IMPORTANT}" -a "${SEVERITY}" != "${SVT_MODERATE}" ]; then
+	if ! is_valid_severity "${SEVERITY}" "${SVT_CRITICAL}" "${SVT_IMPORTANT}" "${SVT_MODERATE}"; then
 		echo "ERROR: ${DOC}: Unknown main severity: ${SEVERITY}"
 		exit 1
 	fi
@@ -215,7 +243,7 @@ function check_doc()
 		while read LINE
 		do
 			EACH_SEVERITY=`echo "${LINE}" | awk -F "|" '{ print $3 }' | tr -d " "`
-			if [ "${EACH_SEVERITY}" != "${SVT_CRITIAL}" -a "${EACH_SEVERITY}" != "${SVT_IMPORTANT}" -a "${EACH_SEVERITY}" != "${SVT_MODERATE}" ]; then
+			if ! is_valid_severity "${EACH_SEVERITY}" "${SVT_CRITICAL}" "${SVT_IMPORTANT}" "${SVT_MODERATE}"; then
 				if [ -z "${EACH_SEVERITY}" ]; then
 					echo "ERROR: ${DOC}: No severity found, please use Table to list what you '### Fixed'"
 				else
@@ -228,11 +256,11 @@ function check_doc()
 			if [ -z "${TOP_SEVERITY}" ]; then
 				TOP_SEVERITY="${EACH_SEVERITY}"
 			elif [ "${TOP_SEVERITY}" == "${SVT_MODERATE}" ]; then
-				if [ "${EACH_SEVERITY}" == "${SVT_CRITIAL}" -o "${EACH_SEVERITY}" == "${SVT_IMPORTANT}" ]; then
+				if [ "${EACH_SEVERITY}" == "${SVT_CRITICAL}" -o "${EACH_SEVERITY}" == "${SVT_IMPORTANT}" ]; then
 					TOP_SEVERITY="${EACH_SEVERITY}"
 				fi
 			elif [ "${TOP_SEVERITY}" == "${SVT_IMPORTANT}" ]; then
-				if [ "${EACH_SEVERITY}" == "${SVT_CRITIAL}" ]; then
+				if [ "${EACH_SEVERITY}" == "${SVT_CRITICAL}" ]; then
 					TOP_SEVERITY="${EACH_SEVERITY}"
 				fi
 			fi
