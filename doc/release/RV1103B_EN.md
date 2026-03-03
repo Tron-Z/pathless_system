@@ -1,5 +1,19 @@
 # RV1103B Release Note
 
+## rv1103b_spl_v1.01.bin
+
+| Date       | File                  | Build commit | Severity  |
+| ---------- | :----------------------- | ----------- | -------- |
+| 2026-03-02 | rv1103b_spl_v1.01.bin | a27a89c5fa1   | important     |
+
+### Fixed
+
+| Index | Severity  | Update                                  | Issue description                   | Issue source |
+| ----- | --------- | --------------------------------------- | ----------------------------------- | ------------ |
+| 1     | important  | Avoid premature decompression termination by decom. | SPL hw decompression of uboot failed. | -            |
+
+------
+
 ## rv1103b_usbplug_auto_merge_v1.11.bin
 
 | Date       | File                               | Build commit                                   | Severity |
