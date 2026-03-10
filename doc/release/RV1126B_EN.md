@@ -1,5 +1,25 @@
 # rv1126b Release Note
 
+## rv1126b_bl32_v1.05.bin
+
+| Date       | File                   | Build Commit | Severity |
+| ---------- | ---------------------- | ------------ | -------- |
+| 2026-03-10 | rv1126b_bl32_v1.05.bin | 14421695d    | important |
+
+### New
+
+1. Support CTR mode.
+2. OAEP decode compatible with MGF1 = SHA1.
+3. Support DICE data read/write.
+
+### Fixed
+
+| Index | Severity | Update                 | Issue description                 | Issue source |
+| ----- | -------- | ---------------------------------- | ---------------------------------------- | -------- |
+| 1     | important | Enable CE instruction set by default | Algorithm runs slow without CE support | 614919 |
+
+------
+
 ## rv1126b_spl{, _ipc}_v1.06.bin
 
 | Date       | File                  | Build commit | Severity  |
