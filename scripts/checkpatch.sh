@@ -306,7 +306,7 @@ function check_docs()
 	fi
 
 	echo "Checking doc ..."
-	if git log ${ARG_COMMIT} -1 --name-only | grep -Eq '\.bin|\.elf' ; then
+	if git log ${ARG_COMMIT} -1 --name-only --format='' | grep -Eq '\.bin|\.elf' ; then
 		DOC_CN=`git log ${ARG_COMMIT} -1 --name-only | sed -n "/_CN\.md/p"`
 		DOC_EN=`git log ${ARG_COMMIT} -1 --name-only | sed -n "/_EN\.md/p"`
 		if [ -z "${DOC_CN}" -o -z "${DOC_EN}" ]; then
