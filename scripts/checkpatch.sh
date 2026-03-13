@@ -115,14 +115,16 @@ function check_doc()
 	fi
 
 	# check year/month
-	if [ "${HOST_YEAR}" != "${YEAR}" ]; then
-		echo "ERROR: ${DOC}: '${DATE}' is wrong, the year should be ${HOST_YEAR}"
-		exit 1
-	fi
+	if [ "${ARG_COMMIT}" != "" ]; then
+		if [ "${HOST_YEAR}" != "${YEAR}" ]; then
+			echo "ERROR: ${DOC}: '${DATE}' is wrong, the year should be ${HOST_YEAR}"
+			exit 1
+		fi
 
-	if [ "${HOST_MON}" != "${MON}" ]; then
-		echo "ERROR: ${DOC}: '${DATE}' is wrong, the month should be ${HOST_MON}"
-		exit 1
+		if [ "${HOST_MON}" != "${MON}" ]; then
+			echo "ERROR: ${DOC}: '${DATE}' is wrong, the month should be ${HOST_MON}"
+			exit 1
+		fi
 	fi
 
 	# check TAB before index of 'New' body
@@ -443,6 +445,76 @@ function check_mode()
 	fi
 }
 
+check_commit_message()
+{
+	if git log ${ARG_COMMIT} -1 --name-only | sed -n '5p' | grep -Eq '^    Revert "' ; then
+		return;
+	fi
+
+	if ! git log ${ARG_COMMIT} -1 --name-only --format='' | grep -Eq '\.bin|\.elf' ; then
+		return
+	fi
+
+	echo "Checking commit message format..."
+	MSG=$(git log ${ARG_COMMIT} -1 --pretty=format:"%B")
+
+	# 1. Header capitalization
+	if echo "$MSG" | grep -q '^build from'; then
+		echo "ERROR: Please change 'build from' to 'Build from'"
+		exit 1
+	fi
+	if echo "$MSG" | grep -q '^update feature'; then
+		echo "ERROR: Please change 'update feature' to 'Update feature'"
+		exit 1
+	fi
+
+	# 2. 'Update feature' must exist and be unique
+	if ! echo "$MSG" | grep -q '^Update feature'; then
+		echo "ERROR: Missing 'Update feature' section"
+		exit 1
+	fi
+
+	# 2.1 Check blank line before 'Update feature'
+	UPDATE_FEATURE_LINE=$(echo "$MSG" | grep -n '^Update feature' | cut -d: -f1)
+	if [ -n "$UPDATE_FEATURE_LINE" ]; then
+		PREV_LINE=$((UPDATE_FEATURE_LINE - 1))
+		PREV_LINE_CONTENT=$(echo "$MSG" | sed -n "${PREV_LINE}p")
+		if [ -n "$PREV_LINE_CONTENT" ]; then
+			echo "ERROR: Please add blank line before 'Update feature'"
+			exit 1
+		fi
+	fi
+
+	# 3. Line 3 must be 'Build from'
+	if ! sed -n '3p' <<< "$MSG" | grep -q '^Build from'; then
+		echo "ERROR: Don't add content before 'Build from'"
+		exit 1
+	fi
+
+	# 3.1 Check blank line before 'Build from' (line 2)
+	LINE_2=$(sed -n '2p' <<< "$MSG")
+	if [ -n "$LINE_2" ]; then
+		echo "ERROR: Please add blank line before 'Build from'"
+		exit 1
+	fi
+
+	# 4. Check that all content lines start either at column 1 or with a single TAB
+	while IFS= read -r line; do
+		# Skip empty lines
+		if [ -z "$line" ]; then
+			continue
+		fi
+
+		# Check if line starts at column 1 or with a single TAB indent only
+		# Use bash pattern matching for reliable tab detection
+		if [[ ! "$line" =~ ^[^[:space:]] ]] && [[ ! "$line" =~ ^$'\t'[^[:space:]] ]]; then
+			echo "ERROR: Content line must start from line begin or with single TAB indent:"
+			printf '%s\n' "$line"
+			exit 1
+		fi
+	done <<< "$MSG"
+}
+
 function check_version()
 {
 	echo "Checking fwver..."
@@ -485,6 +557,7 @@ function finish()
 	echo
 }
 
+check_commit_message
 check_mode
 check_version
 check_docs
