@@ -776,7 +776,7 @@ static char * physNames_ZERO_3_W[64] =
 	"     GND", "RXD.0   ",
 	"     PB0", "PB5     ",
 	"     PB1", "GND     ",
-	"     PE9", "PL2     ",
+	"    PE11", "PL2     ",
 	"    3.3V", "PL3     ",
 	"  MOSI.3", "GND     ",
 	"  MISO.3", "PD0     ",
