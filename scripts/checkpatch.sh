@@ -498,19 +498,34 @@ check_commit_message()
 		exit 1
 	fi
 
-	# 4. Check that all content lines start either at column 1 or with a single TAB
+	# 4. Split by blank lines into sections. The first line of a section must
+	# start at column 1; following lines must use a single TAB indent.
+	SECTION_LINE_NO=0
 	while IFS= read -r line; do
-		# Skip empty lines
 		if [ -z "$line" ]; then
+			SECTION_LINE_NO=0
 			continue
 		fi
 
-		# Check if line starts at column 1 or with a single TAB indent only
-		# Use bash pattern matching for reliable tab detection
-		if [[ ! "$line" =~ ^[^[:space:]] ]] && [[ ! "$line" =~ ^$'\t'[^[:space:]] ]]; then
-			echo "ERROR: Content line must start from line begin or with single TAB indent:"
-			printf '%s\n' "$line"
-			exit 1
+		case "$line" in
+		Change-Id:*|Signed-off-by:*)
+			continue
+			;;
+		esac
+
+		SECTION_LINE_NO=$((SECTION_LINE_NO + 1))
+		if [ "$SECTION_LINE_NO" -eq 1 ]; then
+			if [[ ! "$line" =~ ^[^[:space:]] ]]; then
+				echo "ERROR: Please start from line begin:"
+				printf '%s\n' "$line"
+				exit 1
+			fi
+		else
+			if [[ ! "$line" =~ ^$'\t'[^[:space:]] ]]; then
+				echo "ERROR: Please start with single TAB indent:"
+				printf '%s\n' "$line"
+				exit 1
+			fi
 		fi
 	done <<< "$MSG"
 }
