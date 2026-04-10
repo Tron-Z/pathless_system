@@ -452,7 +452,9 @@ check_commit_message()
 	fi
 
 	if ! git log ${ARG_COMMIT} -1 --name-only --format='' | grep -Eq '\.bin|\.elf' ; then
-		return
+		if ! git log ${ARG_COMMIT} -1 --name-only --format='' | grep -Eq 'syscfg' ; then
+			return
+		fi
 	fi
 
 	echo "Checking commit message format..."
