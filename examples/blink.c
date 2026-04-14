@@ -63,6 +63,9 @@ unsigned char getGpioNum(void)
 		case PI_MODEL_R1_PLUS:
 			return 8;
 			break;
+		case PI_MODEL_ZERO_4:
+			return 26;
+			break;
 		default:
 			printf ("Oops - unable to determine board type... model: %d\n", model);
 			return -1;

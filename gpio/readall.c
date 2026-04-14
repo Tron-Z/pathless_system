@@ -741,6 +741,34 @@ static int physToWpi_ZERO_3_W[64] =
         -1, -1, -1, -1, -1, -1, -1, -1                              // 56-> 63
 };
 
+static int physToWpi_ZERO_4[64] =
+{
+        -1,     // 0
+        -1, -1, // 1, 2
+         0, -1, // 3, 4
+         1, -1, // 5, 6
+         2,  3, // 7, 8
+        -1,  4, // 9, 10
+         5,  6, //11, 12
+         7, -1, //13, 14
+         8,  9, //15, 16
+        -1, 10, //17, 18
+        11, -1, //19, 20
+        12, 13, //21, 22
+        14, 15, //23, 24
+        -1, 16, //25, 26
+        17, 18, //27, 28
+        19, 20, //29, 30
+        21, 22, //31, 32
+        23, 24, //33, 34
+        25, -1, //35, 36
+        -1, -1, //37, 38
+        -1, -1, //39, 40
+
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, //41-> 55
+        -1, -1, -1, -1, -1, -1, -1, -1                              // 56-> 63
+};
+
 static char * physNames_4_PRO[64] =
 {
 	NULL,
@@ -789,6 +817,29 @@ static char * physNames_ZERO_3_W[64] =
 	"     PB6", "PD2     ",
 	"     PD4", "PB8     ",
 	"     GND", "PB7     ",
+};
+
+static char * physNames_ZERO_4[64] =
+{
+	NULL,
+	"    3.3V", "5V      ",
+	"   SDA.0", "5V      ",
+	"   SCL.0", "GND     ",
+	"  PWM0-0", "TXD.0   ",
+	"     GND", "RXD.0   ",
+	"     PB0", "PD1     ",
+	"     PB1", "GND     ",
+	"    PE11", "PL2     ",
+	"    3.3V", "PL3     ",
+	"  MOSI.3", "GND     ",
+	"  MISO.3", "PD2     ",
+	"  SCLK.3", "CE.0    ",
+	"     GND", "PE4     ",
+	"     PB4", "PB5     ",
+	"     PB6", "PB7     ",
+	"     PB8", "PD13    ",
+	"    PD16", "PD17    ",
+	"     PL6", "        ",
 };
 
 static int physToWpi_ZERO_2_W[64] =
@@ -2253,6 +2304,12 @@ void OrangePiReadAll(int model)
 			physNames =  physNames_ZERO_3_W;
 			alts = alts_a527;
 			break;
+		case PI_MODEL_ZERO_4:
+			printf (" +------+-----+----------+--------+---+  ZERO 4  +---+--------+----------+-----+------+\n");
+			physToWpi =  physToWpi_ZERO_4;
+			physNames =  physNames_ZERO_4;
+			alts = alts_a527;
+			break;
 		case PI_MODEL_ZERO_3_PLUS:
 			printf (" +------+-----+----------+--------+---+ ZERO3PLUS+---+--------+----------+-----+------+\n");
 			physToWpi =  physToWpi_ZERO_3_PLUS;
@@ -2481,6 +2538,11 @@ void OrangePiReadAll(int model)
 			for (pin = 1 ; pin <= 34; pin += 2)
 				readallPhys(pin);
 			break;
+		case PI_MODEL_ZERO_4:
+			for (pin = 1 ; pin <= 35; pin += 2)
+				readallPhys(pin);
+			break;
+
 		default:
 			printf ("Oops - unable to determine board type... model: %d\n", model);
 			break ;
@@ -2526,6 +2588,9 @@ void OrangePiReadAll(int model)
 			break;
 		case PI_MODEL_ZERO_3_W:
 			printf (" +------+-----+----------+--------+---+  ZERO3W  +---+--------+----------+-----+------+\n");
+			break;
+		case PI_MODEL_ZERO_4:
+			printf (" +------+-----+----------+--------+---+  ZERO 4  +---+--------+----------+-----+------+\n");
 			break;
 		case PI_MODEL_ZERO_3_PLUS:
 			printf (" +------+-----+----------+--------+---+ ZERO3PLUS+---+--------+----------+-----+------+\n");
