@@ -1,30 +1,30 @@
-# rkbin 仓库
+# rkbin Repository
 
-rkbin 仓库主要用于存放 Rockchip 平台上前级启动阶段可能用到的文件，包括：可执行二进制文件、配置文件、工具等。
+The rkbin repository is mainly used to store files that may be used in the early boot stages on Rockchip platforms, including executable binaries, configuration files, tools, and more.
 
 [TOC]
 
-## 文件类型
+## File Types
 
-rkbin 仓库中的文件主要分为以下几类：
+Files in the rkbin repository are mainly divided into the following categories:
 
-| 类型 | 说明 |
-|------|------|
-| **binary** | SPL/DDR/UsbPlug/BL31/BL32/OPTEE 等启动相关的二进制文件，通常由单仓库独立编译得到 |
-| **mcu** | 通常由多仓库联合编译得到的二进制文件 |
-| **syscfg** | MOS 平台上的全局配置文件 |
-| **others** | 工具（tools）、配置文件（ini）等 |
+| Type | Description |
+|------|-------------|
+| **binary** | Boot-related binaries such as SPL/DDR/UsbPlug/BL31/BL32/OPTEE, usually built independently from a single repository |
+| **mcu** | Binaries usually built jointly from multiple repositories |
+| **syscfg** | Global configuration files on MOS platforms |
+| **others** | Tools (`tools`), configuration files (`ini`), etc. |
 
 
-## 文件命名
+## File Naming
 
-Binary 文件的命名规则如下：
+The naming convention for binary files is as follows:
 
 ```
 [platform]_[component]_[feature]_[version].[postfix]
 ```
 
-**命名示例：**
+**Naming examples:**
 
 ```
 bin/rk35/rk3562_spl_v1.07.bin
@@ -35,58 +35,58 @@ bin/rk35/rk3562_bl32_v1.08.bin
 ```
 
 
-## 提交原则
+## Submission Principles
 
-1. **源码优先原则**：源码仓库的补丁必须先合并，再编译出目标文件提交到 rkbin，非特殊情况禁止提交临时或 dirty 版本到 rkbin
+1. **Source-first principle**: Patches in the source repository must be merged first. Then build the target file and submit it to rkbin. Unless there is a special case, submitting temporary or dirty versions to rkbin is prohibited.
 
-   > dirty版本：本地有临时改动还未git commit 就进行代码编译而得到的版本。
+   > Dirty version: a version built from local temporary changes that have not yet been committed with git commit.
 
-2. **可溯源性原则**：必须有足够清晰的 commit message，让当前版本能够在对应的源码仓库中被**溯源**
+2. **Traceability principle**: The commit message must be clear enough so that the current version can be **traced** back to the corresponding source repository.
 
-3. **版本管理原则**：binary 版本不低于 v1.00，更新时必须：提升版本号、更新 release 文档
+3. **Version management principle**: The binary version must not be lower than v1.00. When updating, you must increment the version number and update the release document.
 
-## 合规检查
+## Compliance Check
 
-**提交前检查**：执行 `./scripts/checkpatch.sh`
+**Pre-submission check**: Run `./scripts/checkpatch.sh`.
 
-> 注意：checkpatch.sh是对第一个commit的内容进行检查，所以执行脚本前请先在本地commit。
+> Note: `checkpatch.sh` checks the content of the first commit, so please commit locally before running the script.
 
-## 合并原则
+## Merge Principle
 
-没有任何 -1 的情况下至少一个 review +1 来自补丁 owner 或 reviewer，补丁才可能被合并。
+When there is no -1, at least one review +1 from the patch owner or a reviewer is required before the patch can be merged.
 
 
-## 提交规范
+## Commit Message Guidelines
 
-本文档对不同类型的文件补丁做出 commit message 格式要求，目标是：
+This document defines commit message format requirements for patches of different file types. The goals are:
 
-- 通过提交信息，当前版本能在源码仓库中被溯源
-- 统一提交风格
+- Make the current version traceable to the source repository through the commit message
+- Unify the commit style
 
-> **注意**：本文档只是做出了基本的规范要求，提交者为了更准确溯源可以在此基础规则上自行做出合理调整。
+> **Note**: This document only defines the basic guideline requirements. To improve traceability, submitters may make reasonable adjustments based on these rules.
 
 
 ### binary
 
-格式模板：
+Format template:
 
 ```
 [platform]: [component]: Update version to [version]
 
 Build from commit:
-        <源码仓库编译当前二进制文件时的提交点>
+        <commit point in the source repository used to build the current binary file>
 
 Update feature:
-        <相关的 commit 记录或文字说明，二选一>
+        <related commit records or textual description; choose one of the two>
 
-Build command:  (可选)
-        <编译命令>
+Build command:  (optional)
+        <build command>
 
 Signed-off-by: Your Name <your.email@example.com>
 Change-Id: Ixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-提交示例：
+Commit example:
 
 ```
 rk3506: tee: Update version to v2.30
@@ -106,29 +106,29 @@ Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
 Change-Id: Ief074b1525cdab04160960fc05fc6995c1d9d5ab
 ```
 
-说明：
-- `[platform]: [component]: Update version to [version]` - **强制要求**，标题格式
-- `Build from commit` - **强制要求**，特别注意：这个 commit 指的是源码仓库编译当前二进制文件时的提交点
-- `Update feature` - **强制要求**，形式二选一：（1）附上相关的 commit 记录或（2）文字说明
-- `Build command` - 可选，提供编译命令以便复现
+Description:
+- `[platform]: [component]: Update version to [version]` - **required**, title format
+- `Build from commit` - **required**. Pay special attention: this commit refers to the source repository commit point used to build the current binary file.
+- `Update feature` - **required**. Choose one of two forms: (1) provide related commit records, or (2) provide a textual description.
+- `Build command` - optional. Provide the build command for reproduction.
 
 ---
 
 ### mcu
 
-格式模板：
+Format template:
 
 ```
 [platform]: mcu: Update [mcu_name] version to [version]
 
 Build from commit:
-        <各仓库编译点的汇总，用 # 隔开>
+        <summary of build points from each repository, separated by #>
 
-Build from [子仓库1] commit in [branch] branch:
-        <子仓库1的编译点>
+Build from [sub-repository 1] commit in [branch] branch:
+        <build point of sub-repository 1>
 
-Build from [子仓库2] commit in [branch] branch:
-        <子仓库2的编译点>
+Build from [sub-repository 2] commit in [branch] branch:
+        <build point of sub-repository 2>
 
 ...
 
@@ -136,7 +136,7 @@ Signed-off-by: Your Name <your.email@example.com>
 Change-Id: Ixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-提交示例：
+Commit example:
 
 ```
 rv1106: mcu: Update rv1106_hpmcu_tb_sc450ai version to v1.91
@@ -157,34 +157,34 @@ Signed-off-by: Lan Honglin <helin.lan@rock-chips.com>
 Change-Id: I805514e21b953e20764a563176205edefff87d8a
 ```
 
-说明：
-- `[platform]: mcu: Update [mcu_name] version to [version]` - **强制要求**，标题格式
-- `Build from commit` - **强制要求**，各仓库编译点的汇总，用 `#` 隔开
-- `Build from [子仓库名] commit in [分支名] branch` - **强制要求**，每个子仓库的编译点单独列出
+Description:
+- `[platform]: mcu: Update [mcu_name] version to [version]` - **required**, title format
+- `Build from commit` - **required**, a summary of build points from each repository, separated by `#`
+- `Build from [sub-repository name] commit in [branch name] branch` - **required**, list the build point of each sub-repository separately
 
 ---
 
 ### syscfg
 
-格式模板：
+Format template:
 
 ```
 [platform]: syscfg: [config_files]: [What's_your_update]
 
 Build from [branch] commit:
-        <源码仓库的编译点>
+        <build point in the source repository>
 
 Update feature:
-        <相关的 commit 记录或文字说明>
+        <related commit records or textual description>
 
-Build command:  (可选)
-        <生成配置文件的命令>
+Build command:  (optional)
+        <command used to generate the configuration file>
 
 Signed-off-by: Your Name <your.email@example.com>
 Change-Id: Ixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-提交示例：
+Commit example:
 
 ```
 rk3576: syscfg: vehicle-evb20/evb21: Add system suspend support
@@ -202,33 +202,33 @@ Signed-off-by: Luo Wei <lw@rock-chips.com>
 Change-Id: I0eb2c2b8362eaaa18b4e061b31036409a9663e40
 ```
 
-说明：
-- `[platform]: syscfg: [config_files]: [What's_your_update]` - **强制要求**，标题格式
-- `Build from [branch] commit` - **强制要求**，源码仓库的编译点
-- `Update feature` - **强制要求**，相关的 commit 记录或文字说明
-- `Build command` - 可选，提供生成配置文件的命令
+Description:
+- `[platform]: syscfg: [config_files]: [What's_your_update]` - **required**, title format
+- `Build from [branch] commit` - **required**, the build point in the source repository
+- `Update feature` - **required**, related commit records or textual description
+- `Build command` - optional. Provide the command used to generate the configuration file.
 
 ---
 
 ### others
 
-格式模板：
+Format template:
 
 ```
 tools: [component]: Update version to [version]
 
 Update features:
-        1. <更新内容1>
-        2. <更新内容2>
+        1. <update content 1>
+        2. <update content 2>
         ...
 
-<其他相关信息，可选>
+<other related information, optional>
 
 Signed-off-by: Your Name <your.email@example.com>
 Change-Id: Ixxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-提交示例：
+Commit example:
 
 ```
 tools: ddrbin_tool: Update version to v1.28
@@ -242,29 +242,29 @@ Signed-off-by: Zhihuan He <huan.he@rock-chips.com>
 Change-Id: I0d35a045596666aee54be6e2cf7efd01788bcc58
 ```
 
-说明：
-- `tools: [component]: Update version to [version]` - **强制要求**，标题格式
-- `Update features` - **强制要求**，更新内容列表
-- 其他相关信息 - 可选
+Description:
+- `tools: [component]: Update version to [version]` - **required**, title format
+- `Update features` - **required**, update content list
+- Other related information - optional
 
-## Release文档
+## Release Documents
 
-Binary文件更新时请同步更新`doc/release/`下的中、英文档，具体格式请参考现有文档。几点重要说明：
+When binary files are updated, please update both the Chinese and English documents under `doc/release/` accordingly. Refer to the existing documents for the specific format. Important notes:
 
-- `文件`：如果更新的是多个文件，可用`{}` 模糊表示。
+- `File`: If multiple files are updated, `{}` can be used as a wildcard expression.
 
-- `编译 commit`：源码仓库的编译点。
+- `Build commit`: The build point in the source repository.
 
-- `重要程度`：紧急 > 重要 > 普通。
+- `Importance`: critical > important > moderate.
 
-  > 英文版本：critical > important > moderate。
+  > Chinese version: 紧急 > 重要 > 普通。
 
-- `New`：有新的feature更新时启用，以文字形式逐项说明。
+- `New`: Use this when new features are updated, and describe them item by item in text form.
 
-- `Fixed`：修复问题时启用，以表格形式逐项说明。
+- `Fixed`: Use this when fixing issues, and describe them item by item in table form.
 
-- `问题来源`：按需填写。可以是redmine的ID或其它文字说明；没有时填写为`-`。
+- `Issue source`: Fill in as needed. It can be a Redmine ID or another textual description. If there is none, fill in `-`.
 
-- 更新完成后在末尾插入水平分隔符：`------`。
+- Insert a horizontal separator at the end after the update is complete: `------`.
 
-- 提交前执行检查： `./scripts/checkpatch.sh` 。
+- Run the pre-submission check: `./scripts/checkpatch.sh`.
