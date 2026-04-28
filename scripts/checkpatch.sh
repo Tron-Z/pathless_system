@@ -546,6 +546,11 @@ function check_version()
 			continue
 		fi
 
+		# ignore rk3308
+		if [[ "${FILE}" == *rk3308_bl31_* ]]; then
+			continue
+		fi
+
 		# ignore mos spl
 		if [[ "${FILE}" == *_spl*primary_* ]]; then
 			continue
