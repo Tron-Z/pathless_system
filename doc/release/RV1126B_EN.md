@@ -1,5 +1,19 @@
 # rv1126b Release Note
 
+## rv1126b_bl32_v1.06.bin
+
+| Date       | File                   | Build Commit | Severity  |
+| ---------- | ---------------------- | ------------ | --------- |
+| 2026-04-29 | rv1126b_bl32_v1.06.bin | 5f256dc1a    | important |
+
+### Fixed
+
+| Index | Severity  | Update                                   | Issue description                                            | Issue source |
+| ----- | --------- | ---------------------------------------- | ------------------------------------------------------------ | ------------ |
+| 1     | important | Fix the low-probability data abort issue | The reboot of the device during secure storage may trigger it with a low probability | -            |
+
+------
+
 ## rv1126b_bl32_v1.05.bin
 
 | Date       | File                   | Build Commit | Severity |
