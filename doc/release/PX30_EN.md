@@ -1,5 +1,19 @@
 # PX30 Release Note
 
+## px30_bl32_v2.21.bin
+
+| Date       | File                | Build Commit | Severity  |
+| ---------- | ------------------- | ------------ | --------- |
+| 2026-04-29 | px30_bl32_v2.21.bin | 5f256dc1a    | important |
+
+### Fixed
+
+| Index | Severity  | Update                                   | Issue description                                            | Issue source |
+| ----- | --------- | ---------------------------------------- | ------------------------------------------------------------ | ------------ |
+| 1     | important | Fix the low-probability data abort issue | The reboot of the device during secure storage may trigger it with a low probability | -            |
+
+------
+
 ## px30_bl32_v2.20.bin
 
 | Date       | File                   | Build Commit | Severity |
