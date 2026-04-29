@@ -1,5 +1,24 @@
 # RV1103B Release Note
 
+## rv1103b_tee_ta_v1.05.bin
+
+| Date       | File                     | Build commit | Severity  |
+| ---------- | :----------------------- | ------------ | --------- |
+| 2026-04-29 | rv1103b_tee_ta_v1.05.bin | 5f256dc1a    | important |
+
+### New
+
+1. OAEP decode compatible with MGF1 = SHA1.
+2. Optimize sleep and wake-up.
+
+### Fixed
+
+| Index | Severity  | Update                                   | Issue description                                            | Issue source |
+| ----- | --------- | ---------------------------------------- | ------------------------------------------------------------ | ------------ |
+| 1     | important | Fix the low-probability data abort issue | The reboot of the device during secure storage may trigger it with a low probability | -            |
+
+------
+
 ## rv1103b_spl_v1.01.bin
 
 | Date       | File                  | Build commit | Severity  |
