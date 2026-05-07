@@ -115,7 +115,7 @@ function check_doc()
 	fi
 
 	# check year/month
-	if [ "${ARG_COMMIT}" != "" ]; then
+	if [ "${ARG_COMMIT}" != "" -a "${ARG_COMMIT}" != ""]; then
 		if [ "${HOST_YEAR}" != "${YEAR}" ]; then
 			echo "ERROR: ${DOC}: '${DATE}' is wrong, the year should be ${HOST_YEAR}"
 			exit 1
