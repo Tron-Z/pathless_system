@@ -356,6 +356,27 @@ function pack_loader_image()
 	done
 }
 
+function check_trust_ini_extra_files()
+{
+	local FILE=$1
+	local ITEM
+	local EXTRA_FILE
+
+	for ITEM in `sed -n '/^\(MCU\|MCU[0-9]\+\|LOAD[0-9]\+\|INIT[0-9]\+\)=/p' ${FILE} | tr -d '\r'`
+	do
+		EXTRA_FILE=$(echo ${ITEM} | cut -d= -f2 | cut -d, -f1)
+		# Ignore files:
+		if [ "${EXTRA_FILE}" == "bin/rv11/rtthread.bin" ]; then
+			continue
+		fi
+		# Verify
+		if [ ! -e "${EXTRA_FILE}" ]; then
+			echo "ERROR: ${FILE}: missing file ${EXTRA_FILE}"
+			exit 1
+		fi
+	done
+}
+
 function pack_trust_image()
 {
 	# Pack 32-bit trust
@@ -370,6 +391,7 @@ function pack_trust_image()
 		fi
 
 		echo "Pack trust: ${FILE}"
+		check_trust_ini_extra_files ${FILE}
 		# Parse orignal path
 		TOS=`sed -n "/TOS=/s/TOS=//p" ${FILE}|tr -d '\r'`
 		TOS_TA=`sed -n "/TOSTA=/s/TOSTA=//p" ${FILE}|tr -d '\r'`
@@ -400,6 +422,7 @@ function pack_trust_image()
 		fi
 
 		echo "Pack trust: ${FILE}"
+		check_trust_ini_extra_files ${FILE}
 		./tools/trust_merger ${FILE}
 		rm -f trust*.img
 		echo
