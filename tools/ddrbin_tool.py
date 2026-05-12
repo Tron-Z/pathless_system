@@ -39,7 +39,7 @@ chip_list = ['px30', 'px30s', 'px3se', 'px5', 'rk1808', 'rk2118', 'rk312x', 'rk3
 
 version_old_list = ['rk322xh', 'rk3328', 'rk3318']
 
-# struct rk3528_ca_skew
+# word0 = skew_freq_mhz, words1-8 = ca_skew_0 to ca_skew_7
 rk3528_ca_skew = {
     'skew_freq': 0,
     'ca_skew_0': 0,
@@ -52,12 +52,238 @@ rk3528_ca_skew = {
     'ca_skew_7': 0,
 }
 
-# struct rk3528_skew_info
+
+def create_skew_info_for_platform(chip, skew_sub_version=0):
+    """
+    Create a skew_info structure for a specific platform based on its DDR type support.
+
+    The structure is:
+    - skew_sub_version: 1 word (if non-zero, enables platform-specific DDR type layout)
+    - For each supported DDR type (in order): 9 words (skew_freq + ca_skew_0-7)
+
+    Args:
+        chip: Platform chip name
+        skew_sub_version: Value from original binary (default 0 for legacy format)
+
+    Returns:
+        Dictionary with skew_sub_version and DDR type-specific CA skew data
+    """
+    ddr_types = get_platform_ddr_types(chip)
+    skew_info = {'skew_sub_version': skew_sub_version}
+
+    for ddr_type in ddr_types:
+        key = DDR_TYPE_TO_KEY.get(ddr_type)
+        if key:
+            skew_info[key] = rk3528_ca_skew.copy()
+
+    return skew_info
+
+
+# struct rk3528_skew_info (backward compatible, supports DDR3, DDR4, LPDDR3)
 rk3528_skew_info = {
     'skew_sub_version': 0,
-    'ddr3' : rk3528_ca_skew.copy(),
-    'ddr4' : rk3528_ca_skew.copy(),
-    'lp3' : rk3528_ca_skew.copy(),
+    'ddr3': rk3528_ca_skew.copy(),
+    'ddr4': rk3528_ca_skew.copy(),
+    'lp3': rk3528_ca_skew.copy(),
+}
+
+# ============================================================================
+# ============================================================================
+# Platform CA Skew Mapping Configuration
+# Format: 'SIGNAL_NAME': (register_index, bit_shift, mask)
+# register_index: 0-7 correspond to ca_skew_0 to ca_skew_7
+# bit_shift: 24=[31:24], 16=[23:16], 8=[15:8], 0=[7:0]
+#
+# Special key '_enabled': If present and False, this DDR type is disabled for the platform
+# ============================================================================
+
+# RK3528/RK3538 CA Skew Mapping (supports DDR3, DDR4, LPDDR3)
+RK3528_CA_SKEW_MAPPING = {
+    'DDR3': {
+        'CA0': (2, 8, 0xFF), 'CA1': (0, 0, 0xFF), 'CA2': (1, 24, 0xFF),
+        'CA3': (1, 8, 0xFF), 'CA4': (1, 16, 0xFF), 'CA5': (2, 24, 0xFF),
+        'CA6': (1, 0, 0xFF), 'CA7': (2, 0, 0xFF), 'CA8': (3, 16, 0xFF),
+        'CA9': (0, 24, 0xFF), 'CA10': (3, 24, 0xFF), 'CA11': (2, 16, 0xFF),
+        'CA12': (4, 0, 0xFF), 'CA13': (0, 8, 0xFF), 'CA14': (0, 16, 0xFF),
+        'CA15': (5, 16, 0xFF), 'RAS': (5, 8, 0xFF), 'CAS': (7, 24, 0xFF),
+        'BA0': (5, 24, 0xFF), 'BA1': (3, 0, 0xFF), 'BA2': (4, 8, 0xFF),
+        'WE': (6, 8, 0xFF), 'CKE0': (4, 24, 0xFF), 'CKE1': (5, 0, 0xFF),
+        'CKN': (6, 24, 0xFF), 'CKP': (6, 16, 0xFF), 'ODT0': (3, 8, 0xFF),
+        'ODT1': (6, 0, 0xFF), 'CS0': (7, 0, 0xFF), 'CS1': (7, 16, 0xFF),
+        'RESETN': (7, 8, 0xFF),
+    },
+    'DDR4': {
+        'CA0': (0, 24, 0xFF), 'CA1': (0, 16, 0xFF), 'CA2': (0, 8, 0xFF), 'CA3': (0, 0, 0xFF),
+        'CA4': (1, 24, 0xFF), 'CA5': (1, 16, 0xFF), 'CA6': (1, 8, 0xFF), 'CA7': (1, 0, 0xFF),
+        'CA8': (2, 24, 0xFF), 'CA9': (2, 16, 0xFF), 'CA10': (2, 8, 0xFF), 'CA11': (2, 0, 0xFF),
+        'CA12': (3, 24, 0xFF), 'CA13': (3, 16, 0xFF), 'CA14': (3, 8, 0xFF), 'CA15': (3, 0, 0xFF),
+        'CA16': (4, 24, 0xFF), 'CA17': (4, 16, 0xFF), 'BA0': (4, 8, 0xFF), 'BA1': (4, 0, 0xFF),
+        'BG0': (5, 24, 0xFF), 'BG1': (5, 16, 0xFF), 'CKE0': (5, 8, 0xFF), 'CKE1': (5, 0, 0xFF),
+        'CKN': (6, 24, 0xFF), 'CKP': (6, 16, 0xFF), 'ODT0': (6, 8, 0xFF), 'ODT1': (6, 0, 0xFF),
+        'CS0': (7, 24, 0xFF), 'CS1': (7, 16, 0xFF), 'RESETN': (7, 8, 0xFF), 'ACTN': (7, 0, 0xFF),
+    },
+    'LPDDR3': {
+        'CA0': (3, 0, 0xFF), 'CA1': (4, 0, 0xFF), 'CA2': (2, 16, 0xFF),
+        'CA3': (3, 16, 0xFF), 'CA4': (3, 24, 0xFF), 'CA5': (1, 24, 0xFF),
+        'CA6': (2, 24, 0xFF), 'CA7': (2, 0, 0xFF), 'CA8': (5, 24, 0xFF),
+        'CA9': (7, 0, 0xFF), 'CKE0': (4, 8, 0xFF), 'CKE1': (5, 0, 0xFF),
+        'CKN': (6, 24, 0xFF), 'CKP': (6, 16, 0xFF), 'ODT0': (6, 8, 0xFF),
+        'ODT1': (6, 0, 0xFF), 'ODT2': (0, 24, 0xFF), 'ODT3': (0, 8, 0xFF),
+        'CS0': (7, 16, 0xFF), 'CS1': (7, 24, 0xFF), 'CS2': (1, 8, 0xFF),
+        'CS3': (3, 8, 0xFF),
+    },
+}
+
+# RV1126B CA Skew Mapping (supports DDR3, DDR4 only - LPDDR3 disabled)
+RV1126B_CA_SKEW_MAPPING = {
+    'DDR3': {
+        'CA3': (0, 24, 0xFF), 'BA1': (0, 16, 0xFF), 'CA9': (0, 8, 0xFF), 'CA15': (0, 0, 0xFF),
+        'CA6': (1, 24, 0xFF), 'CA12': (1, 16, 0xFF), 'BA2': (1, 8, 0xFF), 'CA4': (1, 0, 0xFF),
+        'CA1': (2, 24, 0xFF), 'CA5': (2, 16, 0xFF), 'CA8': (2, 8, 0xFF), 'CA7': (2, 0, 0xFF),
+        'RAS': (3, 24, 0xFF), 'CA13': (3, 16, 0xFF), 'CA14': (3, 8, 0xFF), 'CA10': (3, 0, 0xFF),
+        'CA11': (4, 24, 0xFF), 'CS1': (4, 8, 0xFF), 'WE': (4, 0, 0xFF),
+        'ODT1': (5, 24, 0xFF), 'CA2': (5, 16, 0xFF), 'CAS': (5, 8, 0xFF),
+        'CKN': (6, 24, 0xFF), 'CKP': (6, 16, 0xFF), 'CS0': (6, 8, 0xFF), 'CA0': (6, 0, 0xFF),
+        'ODT0': (7, 24, 0xFF), 'BA0': (7, 16, 0xFF), 'RESETN': (7, 8, 0xFF), 'CKE0': (7, 0, 0xFF),
+    },
+    'DDR4': {
+        'CA0': (0, 24, 0xFF), 'CA1': (0, 16, 0xFF), 'CA2': (0, 8, 0xFF), 'CA3': (0, 0, 0xFF),
+        'CA4': (1, 24, 0xFF), 'CA5': (1, 16, 0xFF), 'CA6': (1, 8, 0xFF), 'CA7': (1, 0, 0xFF),
+        'CA8': (2, 24, 0xFF), 'CA9': (2, 16, 0xFF), 'CA10': (2, 8, 0xFF), 'CA11': (2, 0, 0xFF),
+        'CA12': (3, 24, 0xFF), 'CA13': (3, 16, 0xFF), 'CA14': (3, 8, 0xFF), 'CA15': (3, 0, 0xFF),
+        'CA16': (4, 24, 0xFF), 'CA17': (4, 16, 0xFF), 'BA0': (4, 8, 0xFF), 'BA1': (4, 0, 0xFF),
+        'BG0': (5, 24, 0xFF), 'BG1': (5, 16, 0xFF), 'CKE0': (5, 8, 0xFF),
+        'CKN': (6, 24, 0xFF), 'CKP': (6, 16, 0xFF), 'ODT0': (6, 8, 0xFF), 'ODT1': (6, 0, 0xFF),
+        'CS0': (7, 24, 0xFF), 'CS1': (7, 16, 0xFF), 'RESETN': (7, 8, 0xFF), 'ACTN': (7, 0, 0xFF),
+    },
+    # LPDDR3 is defined but disabled for RV1126B
+    'LPDDR3': {
+        '_enabled': False,  # Disable LPDDR3 for this platform
+        'CA3': (0, 24, 0xFF), 'CA9': (0, 8, 0xFF),
+        'CA6': (1, 24, 0xFF), 'CA4': (1, 0, 0xFF),
+        'CA1': (2, 24, 0xFF), 'CA5': (2, 16, 0xFF), 'CA8': (2, 8, 0xFF), 'CA7': (2, 0, 0xFF),
+        'CS1': (4, 8, 0xFF),
+        'ODT1': (5, 24, 0xFF), 'CA2': (5, 16, 0xFF),
+        'CKN': (6, 24, 0xFF), 'CKP': (6, 16, 0xFF), 'CS0': (6, 8, 0xFF), 'CA0': (6, 0, 0xFF),
+        'ODT0': (7, 24, 0xFF), 'CKE0': (7, 0, 0xFF),
+    },
+}
+
+
+# Platform mapping registry
+PLATFORM_CA_SKEW_MAPPINGS = {
+    'rk3528': RK3528_CA_SKEW_MAPPING,
+    'rk3538': RK3528_CA_SKEW_MAPPING,
+    'rv1126b': RV1126B_CA_SKEW_MAPPING,
+}
+
+
+def get_ca_skew_position(chip, ddr_type_key, signal_name):
+    """
+    Get the position and shift for a CA skew signal based on platform-specific mapping.
+
+    Args:
+        chip: Platform chip name (e.g., 'rk3528', 'rv1126b')
+        ddr_type_key: DDR type key ('ddr3', 'ddr4', 'lp3')
+        signal_name: Signal name (e.g., 'CA15', 'RAS', 'BA0')
+
+    Returns:
+        Tuple of (position, shift) or None if not found
+        position: 'ddr3_ca_skew_X' format
+        shift: bit shift value (0, 8, 16, or 24)
+
+    Example:
+        get_ca_skew_position('rv1126b', 'ddr3', 'CA15') -> ('ddr3_ca_skew_0', 0)
+        get_ca_skew_position('rk3528', 'ddr3', 'CA15') -> ('ddr3_ca_skew_5', 16)
+    """
+    mapping = PLATFORM_CA_SKEW_MAPPINGS.get(chip)
+    if not mapping:
+        return None
+
+    # Convert ddr_type_key to mapping key (e.g., 'ddr3' -> 'DDR3')
+    ddr_type_map = {'ddr3': 'DDR3', 'ddr4': 'DDR4', 'lp3': 'LPDDR3'}
+    ddr_type = ddr_type_map.get(ddr_type_key)
+
+    if not ddr_type or ddr_type not in mapping:
+        return None
+
+    signal_mapping = mapping[ddr_type].get(signal_name)
+    if not signal_mapping:
+        return None
+
+    register_index, bit_shift, mask = signal_mapping
+    position = '%s_ca_skew_%d' % (ddr_type_key, register_index)
+
+    return (position, bit_shift)
+
+
+def get_platform_ddr_types(chip):
+    """
+    Get the list of supported DDR types for a specific platform.
+    The order determines the layout of CA skew info in binary.
+
+    Args:
+        chip: Platform chip name (e.g., 'rk3528', 'rv1126b')
+
+    Returns:
+        List of DDR type strings (e.g., ['DDR3', 'DDR4', 'LPDDR3'])
+    """
+    mapping = PLATFORM_CA_SKEW_MAPPINGS.get(chip)
+    if not mapping:
+        return ['DDR3', 'DDR4', 'LPDDR3']  # Default
+
+    # Filter out disabled DDR types
+    ddr_types = []
+    for key in ['DDR3', 'DDR4', 'LPDDR3']:
+        if key in mapping:
+            # Check if explicitly disabled
+            ddr_config = mapping[key]
+            if isinstance(ddr_config, dict) and ddr_config.get('_enabled') is False:
+                continue
+            ddr_types.append(key)
+
+    return ddr_types
+
+
+def get_ddr_type_index(chip, ddr_type):
+    """
+    Get the index of a DDR type for a specific platform.
+    Used to calculate the offset in skew_index.
+
+    Args:
+        chip: Platform chip name
+        ddr_type: DDR type string (e.g., 'DDR3', 'DDR4', 'LPDDR3')
+
+    Returns:
+        Index of the DDR type (0-based), or -1 if not supported
+    """
+    ddr_types = get_platform_ddr_types(chip)
+    try:
+        return ddr_types.index(ddr_type)
+    except ValueError:
+        return -1
+
+def get_ddr_type_by_index(chip, index):
+    """
+    Get the DDR type string by index for a specific platform.
+
+    Args:
+        chip: Platform chip name
+        index: 0-based index
+
+    Returns:
+        DDR type string, or None if index is out of range
+    """
+    ddr_types = get_platform_ddr_types(chip)
+    if 0 <= index < len(ddr_types):
+        return ddr_types[index]
+    return None
+
+# Mapping from DDR type to internal key name used in skew_info dictionaries
+DDR_TYPE_TO_KEY = {
+    'DDR3': 'ddr3',
+    'DDR4': 'ddr4',
+    'LPDDR3': 'lp3',
 }
 
 # struct index_info, u8
@@ -1444,23 +1670,42 @@ def bin_data_2_info(info_from_bin, read_out, ddrbin_index, version, info_from_tx
             elif ddrbin_index[index_name]['offset'] != 0 and 'skew' in index_name:
                 if head_info_name not in read_out:
                     continue
-                if chip_info in ('rk3528', 'rk3538'):
+                if chip_info in ('rk3528', 'rk3538', 'rv1126b'):
                     for key, value in info_from_bin.items():
                         if value['index'] == index_name and value['version'] <= version:
+                            # Use platform-specific CA skew mapping for CA skew signals
+                            if '_ca' in key or any(x in key for x in ['_ras_', '_cas_', '_ba', '_we_', '_cke', '_ck', '_cs', '_odt', '_reset', '_act']):
+                                # Extract DDR type and signal name from key
+                                parts = key.split('_')
+                                ddr_type_key = parts[0]  # 'ddr3', 'ddr4', 'lp3'
+                                signal_name = parts[1].upper()
+
+                                dynamic_pos = get_ca_skew_position(chip_info, ddr_type_key, signal_name)
+                                if dynamic_pos:
+                                    position, shift = dynamic_pos
+                                    # position is like 'ddr3_ca_skew_3', we need position_2 = 'ca_skew_3'
+                                    position_2 = position[position.find('_') + 1:]  # Skip 'ddr3_'
+                                    # read_out structure: read_out[head_info_name][ddr_type_key][position_2]
+                                    if ddr_type_key in read_out[head_info_name] and position_2 in read_out[head_info_name][ddr_type_key]:
+                                        temp_value = read_out[head_info_name][ddr_type_key][position_2]
+                                        temp_value = (temp_value >> shift) & value['mask']
+                                        if not process_signed_value(key, temp_value, info_from_bin):
+                                            info_from_bin[key]['value'] = temp_value
+                                    continue
+
+                            # Fall back to hardcoded position/shift for non-CA-skew signals
                             position_1 = value['position'][ : value['position'].find('_')]
                             position_2 = value['position'][value['position'].find('_') + 1 : ]
-                            # read_out is sdram_head_info_v2 or sdram_head_info_v5
                             if position_1 in list(read_out[head_info_name].keys()):
                                 temp_value = read_out[head_info_name][position_1][position_2]
                                 temp_value = (temp_value >> value['shift']) & value['mask']
                                 if not process_signed_value(key, temp_value, info_from_bin):
                                     info_from_bin[key]['value'] = temp_value
-                                    #print(f"D: {key} = {value} {value['position']}={temp_value}")
 
     return 0
 
 
-def modefy_2_bin_data(info_from_txt, write_in, ddrbin_index, version):
+def modefy_2_bin_data(info_from_txt, write_in, ddrbin_index, version, read_out=None):
     global rk3528_skew_info
 
     if version < 2:
@@ -1517,19 +1762,49 @@ def modefy_2_bin_data(info_from_txt, write_in, ddrbin_index, version):
                         write_in[head_info_name][value['position']] = position_value
                         #print(f"D: {key} = {value}, {value['position']}={position_value}")
             elif ddrbin_index[index_name]['offset'] != 0 and 'skew' in index_name:
-                if chip_info in ('rk3528', 'rk3538'):
-                    write_in.update({'skew_info' : rk3528_skew_info})
-                    if rk3528_skew_info['skew_sub_version'] == 0x1:
+                if chip_info in ('rk3528', 'rk3538', 'rv1126b'):
+                    # Copy skew_info from read_out to preserve original data
+                    if read_out and 'skew_info' in read_out:
+                        import copy
+                        skew_info = copy.deepcopy(read_out['skew_info'])
+                    else:
+                        skew_info = create_skew_info_for_platform(chip_info)
+                    write_in.update({'skew_info': skew_info})
+                    if skew_info['skew_sub_version'] == 0x1:
                         for key, value in info_from_txt.items():
                             if value['index'] == index_name and value['version'] <= version:
-                                position_1 = value['position'][ : value['position'].find('_')]
-                                position_2 = value['position'][value['position'].find('_') + 1 : ]
-                                if position_1 in list(write_in[head_info_name].keys()):
-                                    temp_value =  write_in[head_info_name][position_1][position_2]
-                                    temp_value &= ~(value['mask'] << value['shift'])
-                                    temp_value |= value['value'] << value['shift']
-                                    write_in[head_info_name][position_1][position_2] = temp_value
-                                    #print(f"D: {key} = {value}, {temp_value}")
+                                # Check if this is a CA skew signal that should use dynamic mapping
+                                is_ca_skew_signal = '_ca' in key or any(x in key for x in ['_ras_', '_cas_', '_ba', '_we_', '_cke', '_ck', '_cs', '_odt', '_reset', '_act'])
+
+                                # Use platform-specific CA skew mapping for CA skew signals
+                                if is_ca_skew_signal:
+                                    parts = key.split('_')
+                                    ddr_type_key = parts[0]
+                                    signal_name = parts[1].upper()
+
+                                    dynamic_pos = get_ca_skew_position(chip_info, ddr_type_key, signal_name)
+                                    if dynamic_pos:
+                                        position, shift = dynamic_pos
+                                        # position is like 'ddr3_ca_skew_3', we need position_2 = 'ca_skew_3'
+                                        position_2 = position[position.find('_') + 1:]  # Skip 'ddr3_'
+                                        # write_in structure: write_in[head_info_name][ddr_type_key][position_2]
+                                        if ddr_type_key in write_in[head_info_name] and position_2 in write_in[head_info_name][ddr_type_key]:
+                                            temp_value = write_in[head_info_name][ddr_type_key][position_2]
+                                            temp_value &= ~(value['mask'] << shift)
+                                            temp_value |= value['value'] << shift
+                                            write_in[head_info_name][ddr_type_key][position_2] = temp_value
+                                        continue
+
+                                # Fall back to hardcoded position/shift for non-CA-skew signals
+                                # Skip CA skew signals as they were already handled by dynamic mapping
+                                if not is_ca_skew_signal:
+                                    position_1 = value['position'][:value['position'].find('_')]
+                                    position_2 = value['position'][value['position'].find('_') + 1:]
+                                    if position_1 in list(write_in[head_info_name].keys()):
+                                        temp_value = write_in[head_info_name][position_1][position_2]
+                                        temp_value &= ~(value['mask'] << value['shift'])
+                                        temp_value |= value['value'] << value['shift']
+                                        write_in[head_info_name][position_1][position_2] = temp_value
 
     #print(f"D: write_in = {write_in}")
     return 0
@@ -1564,19 +1839,29 @@ def write_in_bin_data_v2(filebin, bin_skew_offset, write_in, ddrbin_index, info_
                         print("write bin {} to file fail".format(head_info_name))
                         return -1
         elif ddrbin_index[index_name]['offset'] != 0 and 'skew' in index_name:
-            if chip_info in ('rk3528', 'rk3538') and write_in[head_info_name]["skew_sub_version"] == 1:
+            if chip_info in ('rk3528', 'rk3538', 'rv1126b'):
                 filebin.seek(bin_skew_offset + (ddrbin_index[index_name]['offset'] - 1) * 4)
                 index_size = ddrbin_index[index_name]['size']
-                for key in write_in[head_info_name]:
-                    if key == 'skew_sub_version':
-                        temp_value = write_in[head_info_name]["skew_sub_version"]
-                        filebin.write(temp_value.to_bytes(4,byteorder='little'))
+
+                if write_in[head_info_name]["skew_sub_version"] == 1:
+                    # New format: write skew_sub_version first
+                    temp_value = write_in[head_info_name]["skew_sub_version"]
+                    filebin.write(temp_value.to_bytes(4,byteorder='little'))
+                else:
+                    # Legacy format: no skew_sub_version field
+                    pass
+
+                # Write DDR type-specific CA skew data in platform order
+                for ddr_type in get_platform_ddr_types(chip_info):
+                    key = DDR_TYPE_TO_KEY.get(ddr_type)
+
+                    if key not in write_in[head_info_name]:
                         continue
+
                     for key_1 in write_in[head_info_name][key]:
                         if index_size > 0:
                             try:
                                 temp_value = write_in[head_info_name][key][key_1]
-                                #print(f"D: {head_info_name} {key}.{key_1} = {temp_value}")
                                 filebin.write(temp_value.to_bytes(4,byteorder='little'))
                                 index_size -= 1
                             except:
@@ -1639,7 +1924,7 @@ def txt_data_check_availability(info_from_txt, chip_info):
     return 0
 
 #info from bin + info from txt generate to loader parameters
-def txt_data_2_bin_data(info_from_txt, info_from_bin, ddrbin_index, write_in, version):
+def txt_data_2_bin_data(info_from_txt, info_from_bin, ddrbin_index, write_in, version, read_out=None):
     print("\nnew bin config:")
 
     need_modify_uart_iomux = False
@@ -1666,7 +1951,7 @@ def txt_data_2_bin_data(info_from_txt, info_from_bin, ddrbin_index, write_in, ve
             return -1
     #print(info_from_txt)
 
-    modefy_2_bin_data(info_from_txt, write_in, ddrbin_index, version)
+    modefy_2_bin_data(info_from_txt, write_in, ddrbin_index, version, read_out)
 
     return 0
 
@@ -1702,6 +1987,7 @@ def uart_iomux_count_calculation(ddrbin_index, info_from_txt, info_from_bin, rea
 
 def bin_data_readout(filebin, ddrbin_index, read_out, bin_skew_offset, version, info_from_txt):
     global rk3528_skew_info
+    global chip_info
 
     if version < 2:
         for i in range(len(read_out)):
@@ -1723,11 +2009,11 @@ def bin_data_readout(filebin, ddrbin_index, read_out, bin_skew_offset, version, 
                 head_info_name = index_name[:-10]+'_info'
             else:
                 head_info_name = index_name[:-6]+'_info'
-            if head_info_name not in read_out:
+            if head_info_name not in read_out and 'skew' not in index_name:
                 continue
             if ddrbin_index[index_name]['offset'] != 0 and 'skew' not in index_name:
                 if version >= 7 and index_name in ('lp4_index', 'lp5_index', 'lp4x_index',
-                                                     'lp4_4x_template_index', 'lp5_5x_template_index'):
+                                                      'lp4_4x_template_index', 'lp5_5x_template_index'):
                     filebin.seek(ddrbin_index[index_name]['offset'] * 4)
                 else:
                     filebin.seek(bin_skew_offset + (ddrbin_index[index_name]['offset'] - 1) * 4)
@@ -1749,21 +2035,35 @@ def bin_data_readout(filebin, ddrbin_index, read_out, bin_skew_offset, version, 
                 except:
                     print("read skew_sub_ver from bin file fail")
                     return -1
-                if chip_info in ('rk3528', 'rk3538') and skew_sub_ver == 0x1:
-                    for i in rk3528_skew_info:
-                        if i == 'skew_sub_version':
-                            rk3528_skew_info[i] = skew_sub_ver
-                            continue
-                        for j in rk3528_skew_info[i]:
-                            try:
-                                temp_value = int.from_bytes(filebin.read(4), byteorder='little')
-                                rk3528_skew_info[i][j] = temp_value
-                                #print(f"D: {i}.{j}={rk3528_skew_info[i][j]}")
-                            except:
-                                print("read {} from bin file fail".format(head_info_name))
+
+                if skew_sub_ver == 0x1:
+                    # Use platform-specific skew info
+                    if chip_info in ('rk3528', 'rk3538', 'rv1126b'):
+                        skew_info = create_skew_info_for_platform(chip_info)
+                        skew_info['skew_sub_version'] = skew_sub_ver
+
+                        # Read DDR type-specific CA skew data in platform order
+                        for ddr_type in get_platform_ddr_types(chip_info):
+                            key = DDR_TYPE_TO_KEY.get(ddr_type)
+
+                            if key not in skew_info:
+                                print("Error: DDR type {} not found in skew_info for {}".format(ddr_type, chip_info))
                                 return -1
 
-                read_out.update({'skew_info' : rk3528_skew_info})
+                            for j in skew_info[key]:
+                                try:
+                                    temp_value = int.from_bytes(filebin.read(4), byteorder='little')
+                                    skew_info[key][j] = temp_value
+                                except:
+                                    print("read {} from bin file fail".format(head_info_name))
+                                    return -1
+
+                        read_out.update({'skew_info': skew_info})
+                    else:
+                        print("Unsupported platform {} for skew".format(chip_info))
+                        return -1
+                else:
+                    read_out.update({'skew_info': rk3528_skew_info})
 
     return 0
 
@@ -1856,7 +2156,7 @@ def ddrbin_tool(argc, argv):
     verinfo_editable_offset = 0
     verinfo_editable_length = 17
 
-    print("version v1.33 20260422")
+    print("version v1.34 20260512")
     print("python {}, {}, {}".format(sys.version.split(' ', 1)[0], platform.system(), platform.machine()))
     if sys.version_info < (3, 6):
         print("Warning: Please installed Python 3.6 or later.")
@@ -1996,6 +2296,7 @@ def ddrbin_tool(argc, argv):
     # convert the target byte sequence 'start tag' into bytes, byteorder little
     target_bytes = struct.pack('<I', info_from_txt['start tag']['value'])
     start_position = 0
+    start_tag_pos = 0  # Save start_tag position for v7 arr offset calculation
     while True:
         position = content.find(target_bytes, start_position)
         if position == -1:
@@ -2003,6 +2304,7 @@ def ddrbin_tool(argc, argv):
 
         version = int.from_bytes(content[position + 4: position + 8], byteorder='little')
         if version >= 0 and version <= version_max:
+            start_tag_pos = position  # Save start_tag position
             break
         else:
             start_position = position + len(target_bytes)
@@ -2018,7 +2320,7 @@ def ddrbin_tool(argc, argv):
 
     # get ddrbin parameters version
     try:
-        bin_skew_offset = position + 4
+        bin_skew_offset = start_tag_pos + 4
         filebin = open(filebin_path, 'rb+')
         filebin.seek(bin_skew_offset)
         version = int.from_bytes(filebin.read(4), byteorder='little')
@@ -2122,13 +2424,11 @@ def ddrbin_tool(argc, argv):
 
     # v7: read _arr_ entries from fixed offset and set up virtual index entries
     if version >= 7:
-        # Get group sizes from global configuration
         v7_group_sizes = DDR_GROUP_SIZE_WORDS.get(version, DDR_GROUP_SIZE_WORDS[7])
         si_info_size = v7_group_sizes['si_info']
         template_info_size = v7_group_sizes['template_info']
 
-        v7_start_tag_pos = bin_skew_offset - 4
-        v7_arr_offset = v7_start_tag_pos + 0x40
+        v7_arr_offset = start_tag_pos + 0x40
         filebin.seek(v7_arr_offset)
         v7_arr_keys = [
             ('lp4_si_info_arr', si_info_size),
@@ -2192,18 +2492,21 @@ def ddrbin_tool(argc, argv):
         if ddr_type == 'LPDDR5X' and 'lp5_si_info_arr' in v7_arr_data and v7_arr_data['lp5_si_info_arr']['offset'] != 0:
             lp5_arr = v7_arr_data['lp5_si_info_arr']
             lp5x_arr_offset = lp5_arr['offset'] + adc_value * lp5_arr['words_per_group']
-            ddrbin_index['lp5x_index'] = {'offset': lp5x_arr_offset, 'size': lp5_arr['words_per_group']}
+            lp5x_absolute_word_offset = start_tag_pos // 4 + lp5x_arr_offset
+            ddrbin_index['lp5x_index'] = {'offset': lp5x_absolute_word_offset, 'size': lp5_arr['words_per_group']}
 
         if si_arr_name and si_arr_name in v7_arr_data and v7_arr_data[si_arr_name]['offset'] != 0:
             si_arr = v7_arr_data[si_arr_name]
             si_group_offset = si_arr['offset'] + adc_value * si_arr['words_per_group']
-            ddrbin_index[si_index_name] = {'offset': si_group_offset, 'size': si_arr['words_per_group']}
+            si_absolute_word_offset = start_tag_pos // 4 + si_group_offset
+            ddrbin_index[si_index_name] = {'offset': si_absolute_word_offset, 'size': si_arr['words_per_group']}
 
         if tpl_arr_name and tpl_arr_name in v7_arr_data and v7_arr_data[tpl_arr_name]['offset'] != 0:
             tpl_arr = v7_arr_data[tpl_arr_name]
             tpl_group_offset = tpl_arr['offset'] + adc_value * tpl_arr['words_per_group']
+            tpl_absolute_word_offset = start_tag_pos // 4 + tpl_group_offset
             tpl_index_name = tpl_arr_name.replace('_info_arr', '_index')
-            ddrbin_index[tpl_index_name] = {'offset': tpl_group_offset, 'size': tpl_arr['words_per_group']}
+            ddrbin_index[tpl_index_name] = {'offset': tpl_absolute_word_offset, 'size': tpl_arr['words_per_group']}
 
     uart_iomux_count_calculation(ddrbin_index, info_from_txt, info_from_bin, read_out, version)
 
@@ -2228,7 +2531,7 @@ def ddrbin_tool(argc, argv):
         print("Error: modify ddrbin failed")
         return -1
 
-    ret = txt_data_2_bin_data(info_from_txt, info_from_bin, ddrbin_index, write_in, version)
+    ret = txt_data_2_bin_data(info_from_txt, info_from_bin, ddrbin_index, write_in, version, read_out)
     if ret != 0:
         filebin.close()
         print("modify ddrbin failed")
