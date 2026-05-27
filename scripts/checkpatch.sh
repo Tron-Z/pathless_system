@@ -98,6 +98,28 @@ function check_doc()
 		exit 1
 	fi
 
+	# check added paragraph count
+	PARAGRAPH_SUM=`awk '
+		/^\\+\\+\\+/ { next }
+		/^\\+[[:space:]]*$/ { in_para=0; next }
+		/^\\+/ {
+			line=substr($0, 2)
+			if (line ~ /^[[:space:]]*$/) {
+				in_para=0
+				next
+			}
+			if (!in_para) {
+				sum++
+				in_para=1
+			}
+		}
+		END { print sum + 0 }
+	' ${DIFF_DOC_ALL}`
+	if [ "${PARAGRAPH_SUM}" -gt 1 ]; then
+		echo "ERROR: ${DOC}: Please add only one file update section per patch"
+		exit 1
+	fi
+
 	# check title
 	if grep -Eq '### WARN|### WARNING|### Warning|### warn|### warning' ${DIFF_DOC_ALL} ; then
 		echo "ERROR: ${DOC}: Please use '### Warn'"
