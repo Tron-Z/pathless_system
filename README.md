@@ -62,6 +62,7 @@ This document defines commit message format requirements for patches of differen
 
 - Make the current version traceable to the source repository through the commit message
 - Unify the commit style
+- `Build from...` and `Update features...` are currently mandatory. If you are unsure what to put in `Update features`, it is recommended to use the same content as `Build from`.
 
 > **Note**: This document only defines the basic guideline requirements. To improve traceability, submitters may make reasonable adjustments based on these rules.
 
