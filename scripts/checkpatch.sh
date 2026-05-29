@@ -98,25 +98,11 @@ function check_doc()
 		exit 1
 	fi
 
-	# check added paragraph count
-	PARAGRAPH_SUM=`awk '
-		/^\\+\\+\\+/ { next }
-		/^\\+[[:space:]]*$/ { in_para=0; next }
-		/^\\+/ {
-			line=substr($0, 2)
-			if (line ~ /^[[:space:]]*$/) {
-				in_para=0
-				next
-			}
-			if (!in_para) {
-				sum++
-				in_para=1
-			}
-		}
-		END { print sum + 0 }
-	' ${DIFF_DOC_ALL}`
-	if [ "${PARAGRAPH_SUM}" -gt 1 ]; then
-		echo "ERROR: ${DOC}: Please add only one file update section per patch"
+	# check added release note section count
+	SECTION_SUM=`sed -n '/^+## /p' ${DIFF_DOC_ALL} | wc -l`
+	if [ "${SECTION_SUM}" -gt 1 ]; then
+		echo "ERROR: ${DOC}: There are more than one file changed section:"
+		sed -n '/^+## /p' ${DIFF_DOC_ALL} | sed 's/^+//'
 		exit 1
 	fi
 
@@ -136,8 +122,39 @@ function check_doc()
 		exit 1
 	fi
 
+	# check added body format in new "### New" section
+	NEW_BODY_NO_INDEX=`awk '
+		BEGIN { in_new=0 }
+		/^\+### New$/ {
+			in_new=1
+			next
+		}
+		in_new && /^\+## / {
+			in_new=0
+		}
+		in_new && /^\+### / {
+			in_new=0
+		}
+		in_new && /^\+------$/ {
+			in_new=0
+		}
+		in_new && /^\+[[:space:]]*$/ {
+			next
+		}
+		in_new && /^\+/ {
+			if ($0 !~ /^\+[0-9]+\.[[:blank:]]/) {
+				print substr($0, 2)
+			}
+		}
+	' ${DIFF_DOC_ALL}`
+	if [ -n "${NEW_BODY_NO_INDEX}" ]; then
+		echo "ERROR: ${DOC}: Please add index prefix like '1. Add ...' for each added line in '### New':"
+		echo "${NEW_BODY_NO_INDEX}"
+		exit 1
+	fi
+
 	# check year/month
-	if [ "${ARG_COMMIT}" != "" -a "${ARG_COMMIT}" != ""]; then
+	if [ "${ARG_COMMIT}" != "" -a "${ARG_COMMIT}" != "" ]; then
 		if [ "${HOST_YEAR}" != "${YEAR}" ]; then
 			echo "ERROR: ${DOC}: '${DATE}' is wrong, the year should be ${HOST_YEAR}"
 			exit 1
