@@ -260,7 +260,16 @@ When binary files are updated, please update both the Chinese and English docume
 
   > Chinese version: 紧急 > 重要 > 普通。
 
-- `New`: Use this when new features are updated, and describe them item by item in text form.
+- `New`: Use this when new features are updated, and describe them
+  item by item in text form. Each item must have a sequence number,
+  even if there is only one item.
+
+  For example:
+
+  ```
+  1. Add ...
+  2. Improve ...
+  ```
 
 - `Fixed`: Use this when fixing issues, and describe them item by item in table form.
 
