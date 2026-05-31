@@ -2156,7 +2156,7 @@ def ddrbin_tool(argc, argv):
     verinfo_editable_offset = 0
     verinfo_editable_length = 17
 
-    print("version v1.34 20260512")
+    print("version v1.35 20260530")
     print("python {}, {}, {}".format(sys.version.split(' ', 1)[0], platform.system(), platform.machine()))
     if sys.version_info < (3, 6):
         print("Warning: Please installed Python 3.6 or later.")
@@ -2353,6 +2353,9 @@ def ddrbin_tool(argc, argv):
         else:
             start_position = position + len(target_bytes)
 
+    # Initialize is_multi_group for all versions (default False for non-multi-group platforms)
+    is_multi_group = False
+
     if version < 2:
         read_out = copy.deepcopy(sdram_head_info_v0)
         write_in = copy.deepcopy(sdram_head_info_v0)
@@ -2360,9 +2363,6 @@ def ddrbin_tool(argc, argv):
         # skip gcpu_gen_freq after version_info
         filebin.seek(bin_skew_offset + 8)
     elif version <= version_max:
-        # Initialize is_multi_group for all versions (default False for non-multi-group platforms)
-        is_multi_group = False
-
         if version >= 3:
             ddrbin_index.update(sdram_head_info_index_v2_3)
         if version >= 4:
