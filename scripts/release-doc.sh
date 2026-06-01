@@ -9,91 +9,28 @@ set -euo pipefail
 
 usage() {
 	echo "Usage: "
-	echo "    $0 -p <plat> -f <file> -c <commit> -s <severity> [-new [content_en] [content_cn]] [-fix <n> [-s severity]]"
-	echo
-	echo "Note:"
-	echo "    quote -f when it contains special characters '{', '}', or ','. Example: \"rv1106_ddr_{924...792}MHz{_tb}_v1.16.bin\""
+	echo "    $0 -f <content_file>"
 	echo
 	echo "Example: "
-	echo "    ./scripts/release-doc.sh -p rk3572 -f rk3572_bl31_v1.09.elf -c 0aa962ed3ab -s important -new \"Supports MCU wake-up|Supports CCI SIP\" \"支持大核断电|支持1G频率的cpu timer\" -fix 3 -s moderate"
+	echo "    ./scripts/release-doc.sh -f scripts/doc-template.txt"
 	exit 1
 }
 
 plat=
-manual_file=
-add_new=0
-add_fix=0
-new_content=
-new_content_cn=
-new_content_en=
-fix_rows=0
-current_scope=
-new_severity=
-fix_severity=
 build_commit=
+summary_severity=
+content_file=
+declare -a new_items_cn=()
+declare -a new_items_en=()
+declare -a fix_items_cn=()
+declare -a fix_items_en=()
 
 while [ "$#" -gt 0 ]; do
 	case "$1" in
-	-p)
-		shift
-		[ "$#" -gt 0 ] || usage
-		plat="$1"
-		;;
 	-f)
 		shift
 		[ "$#" -gt 0 ] || usage
-		manual_file="$1"
-		;;
-	-new)
-		add_new=1
-		current_scope="new"
-		if [ "$#" -gt 1 ] && [ "${2#-}" = "$2" ]; then
-			shift
-			new_content="$1"
-			if [ "$#" -gt 1 ] && [ "${2#-}" = "$2" ]; then
-				shift
-				if printf '%s' "$new_content" | grep -q '[一-龥]'; then
-					new_content_cn="$new_content"
-					new_content_en="$1"
-				elif printf '%s' "$1" | grep -q '[一-龥]'; then
-					new_content_en="$new_content"
-					new_content_cn="$1"
-				else
-					new_content_en="$new_content"
-					new_content_cn="$1"
-				fi
-			fi
-		fi
-		;;
-	-fix)
-		add_fix=1
-		shift
-		[ "$#" -gt 0 ] || usage
-		case "$1" in
-		''|*[!0-9]*)
-			usage
-			;;
-		esac
-		[ "$1" -ge 1 ] || usage
-		fix_rows="$1"
-		current_scope="fix"
-		;;
-	-c)
-		shift
-		[ "$#" -gt 0 ] || usage
-		build_commit="$1"
-		;;
-	-s)
-		shift
-		[ "$#" -gt 0 ] || usage
-		case "$current_scope" in
-		fix)
-			fix_severity="$1"
-			;;
-		*)
-			new_severity="$1"
-			;;
-		esac
+		content_file="$1"
 		;;
 	*)
 		usage
@@ -102,82 +39,172 @@ while [ "$#" -gt 0 ]; do
 	shift
 done
 
-[ -n "$plat" ] || usage
-[ -n "$manual_file" ] || usage
-[ -n "$build_commit" ] || usage
-[ -n "$new_severity" ] || usage
-if [ "$add_new" -eq 0 ] && [ "$add_fix" -eq 0 ]; then
-	add_new=1
-	add_fix=1
-	fix_rows=4
-fi
-
-if [ "$add_fix" -eq 1 ] && [ "$fix_rows" -eq 0 ]; then
-	usage
-fi
+[ -n "$content_file" ] || usage
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 repo_dir=$(cd "$script_dir/.." && pwd)
 plat_upper=$(printf '%s' "$plat" | tr '[:lower:]' '[:upper:]')
 current_date=$(date +%F)
 
-get_build_commit() {
-	git -C "$repo_dir" show --format=%B -s HEAD | awk '
-		BEGIN {
-			seen = 0
-		}
-		/^[[:space:]]*[Bb][Uu][Ii][Ll][Dd][[:space:]]+[Ff][Rr][Oo][Mm]/ {
-			seen = 1
-			next
-		}
-		seen && /^[[:space:]]*$/ {
-			next
-		}
-		seen {
-			if (match($0, /[0-9a-fA-F]+/)) {
-				print substr($0, RSTART, RLENGTH)
-			}
-			exit
-		}
-	'
+trim_text() {
+	local text="$1"
+
+	text="${text#"${text%%[![:space:]]*}"}"
+	text="${text%"${text##*[![:space:]]}"}"
+	printf '%s' "$text"
 }
 
-get_release_file() {
-	local line_count
-	line_count=$(git -C "$repo_dir" diff-tree --root --no-commit-id --name-status -r --find-renames HEAD | \
-		awk '
-			$1 == "A" && $2 ~ /^bin\// {
-				count++
-			}
-			$1 ~ /^R[0-9]*$/ && $3 ~ /^bin\// {
-				count++
-			}
-			END {
-				print count + 0
-			}
-		')
+normalize_separators() {
+	local text="$1"
 
-	if [ "$line_count" -ne 1 ]; then
-		return 0
+	text=$(printf '%s' "$text" | sed -E 's/[[:space:]]*:[[:space:]]*/: /; s/[[:space:]]*;[[:space:]]*/;/g')
+	printf '%s' "$text"
+}
+
+append_new_item() {
+	local lang="$1"
+	local item="$2"
+
+	if [ "$lang" = "CN" ]; then
+		new_items_cn+=("$item")
+	else
+		new_items_en+=("$item")
 	fi
-
-	git -C "$repo_dir" diff-tree --root --no-commit-id --name-status -r --find-renames HEAD | awk '
-		$1 == "A" && $2 ~ /^bin\// {
-			print $2
-			exit
-		}
-		$1 ~ /^R[0-9]*$/ && $3 ~ /^bin\// {
-			print $3
-			exit
-		}
-	' | xargs -r basename
 }
 
-if [ -n "$manual_file" ]; then
-	release_file="$manual_file"
-else
-	release_file=$(get_release_file)
-fi
+append_fix_item() {
+	local lang="$1"
+	local item="$2"
+
+	if [ "$lang" = "CN" ]; then
+		fix_items_cn+=("$item")
+	else
+		fix_items_en+=("$item")
+	fi
+}
+
+detect_lang() {
+	local text="$1"
+
+	if printf '%s' "$text" | grep -q '[一-龥]'; then
+		printf 'CN'
+	else
+		printf 'EN'
+	fi
+}
+
+load_content_items() {
+	local line
+	local trimmed_line
+	local normalized_line
+	local total
+	local lang
+	local entry_type
+	local entry_body
+	local meta_key
+	local col1
+	local col2
+	local col3
+	local col4
+	local extra
+	local item
+
+	[ -n "$content_file" ] || return 0
+
+	[ -f "$content_file" ] || {
+		echo "Missing content file: $content_file" >&2
+		exit 1
+	}
+
+	while IFS= read -r line || [ -n "$line" ]; do
+		trimmed_line=$(trim_text "$line")
+		[ -n "$trimmed_line" ] || continue
+		[[ "$trimmed_line" == \#* ]] && continue
+		normalized_line=$(normalize_separators "$trimmed_line")
+
+		if [[ "$normalized_line" =~ ^([[:alnum:]_]+):[[:space:]]*(.*)$ ]]; then
+			entry_type=$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')
+			entry_body=$(trim_text "${BASH_REMATCH[2]}")
+		else
+			echo "Invalid content line: $line" >&2
+			exit 1
+		fi
+
+		[ -n "$entry_body" ] || {
+			echo "Invalid content line: $line" >&2
+			exit 1
+		}
+
+		case "$entry_type" in
+		plat|file|build_commit|severity)
+			meta_key="$entry_type"
+			case "$meta_key" in
+			plat)
+				plat="$entry_body"
+				plat_upper=$(printf '%s' "$plat" | tr '[:lower:]' '[:upper:]')
+				;;
+			file)
+				release_file="$entry_body"
+				;;
+			build_commit)
+				build_commit="$entry_body"
+				;;
+			severity)
+				summary_severity="$entry_body"
+				;;
+			esac
+			;;
+		new)
+			lang=$(detect_lang "$entry_body")
+			append_new_item "$lang" "$entry_body"
+			;;
+		fixed)
+			IFS=';；' read -r col1 col2 col3 col4 extra <<EOF
+$entry_body
+EOF
+			col1=$(trim_text "$col1")
+			col2=$(trim_text "$col2")
+			col3=$(trim_text "$col3")
+			col4=$(trim_text "$col4")
+			extra=$(trim_text "$extra")
+
+			if [ -n "$extra" ] || [ -z "$col1" ] || [ -z "$col2" ] || [ -z "$col3" ] || [ -z "$col4" ]; then
+				echo "Invalid fixed content line: $line" >&2
+				exit 1
+			fi
+
+			lang=$(detect_lang "$entry_body")
+			format_severity "$lang" "$col1" >/dev/null
+			item="${col1}|${col2}|${col3}|${col4}"
+			append_fix_item "$lang" "$item"
+			;;
+		*)
+			echo "Unknown content type: $line" >&2
+			exit 1
+			;;
+		esac
+	done < "$content_file"
+
+	[ -n "$plat" ] || {
+		echo "Missing plat in content file: $content_file" >&2
+		exit 1
+	}
+	[ -n "$release_file" ] || {
+		echo "Missing file in content file: $content_file" >&2
+		exit 1
+	}
+	[ -n "$build_commit" ] || {
+		echo "Missing commit in content file: $content_file" >&2
+		exit 1
+	}
+	if [ "${#new_items_cn[@]}" -eq 0 ] && [ "${#new_items_en[@]}" -eq 0 ] && \
+	   [ "${#fix_items_cn[@]}" -eq 0 ] && [ "${#fix_items_en[@]}" -eq 0 ]; then
+		echo "ERROR: Can't find \"New:\" or \"Fixed:\" in $content_file" >&2
+		exit 1
+	fi
+	total=$((${#fix_items_cn[@]} + ${#fix_items_en[@]}))
+	: "$total"
+}
 
 get_section_title() {
 	if [ -n "$release_file" ]; then
@@ -264,104 +291,92 @@ format_severity() {
 	esac
 }
 
+load_content_items
+
 print_new_items() {
 	local lang="$1"
-	local content="$2"
+	local -a items=()
+	local i
+	local content
 
-	if [ -z "$content" ]; then
-		if [ "$lang" = "CN" ]; then
-			cat <<'EOF'
-1. xxx。
-2. yyy。
-EOF
-		else
-			cat <<'EOF'
-1. xxx.
-2. yyy.
-EOF
-		fi
-		return 0
+	if [ "$lang" = "CN" ] && [ "${#new_items_cn[@]}" -gt 0 ]; then
+		items=("${new_items_cn[@]}")
+	elif [ "$lang" = "EN" ] && [ "${#new_items_en[@]}" -gt 0 ]; then
+		items=("${new_items_en[@]}")
 	fi
 
-	printf '%s\n' "$content" | awk -v lang="$lang" '
-		function trim(s) {
-			sub(/^[[:space:]\t.。]+/, "", s)
-			sub(/[[:space:]\t.。]+$/, "", s)
-			return s
-		}
-		{
-			n = split($0, items, /\|/)
-			idx = 0
-			for (i = 1; i <= n; i++) {
-				item = trim(items[i])
-				if (item == "") {
-					continue
-				}
-				idx++
-				if (lang == "CN") {
-					if (item !~ /[。！？]$/) {
-						item = item "。"
-					}
-				} else {
-					if (item !~ /[.!?]$/) {
-						item = item "."
-					}
-				}
-				printf "%d. %s\n", idx, item
-			}
-		}
-	'
+	if [ "${#items[@]}" -gt 0 ]; then
+		i=1
+		for content in "${items[@]}"; do
+			if [ "$lang" = "CN" ]; then
+				if [[ ! "$content" =~ [。！？]$ ]]; then
+					content="${content}。"
+				fi
+			else
+				if [[ ! "$content" =~ [.!?]$ ]]; then
+					content="${content}."
+				fi
+			fi
+			printf '%d. %s\n' "$i" "$content"
+			i=$((i + 1))
+		done
+		return 0
+	fi
 }
 
 print_new_section() {
 	local lang="$1"
-	local content
 
-	[ "$add_new" -eq 1 ] || return 0
-
-	case "$lang" in
-	CN)
-		if [ -n "$new_content_cn" ]; then
-			content="$new_content_cn"
-		else
-			content="$new_content"
-		fi
-		;;
-	*)
-		if [ -n "$new_content_en" ]; then
-			content="$new_content_en"
-		else
-			content="$new_content"
-		fi
-		;;
-	esac
+	if [ "$lang" = "CN" ] && [ "${#new_items_cn[@]}" -eq 0 ]; then
+		return 0
+	fi
+	if [ "$lang" = "EN" ] && [ "${#new_items_en[@]}" -eq 0 ]; then
+		return 0
+	fi
 
 	cat <<'EOF'
 ### New
 
 EOF
-	print_new_items "$lang" "$content"
+	print_new_items "$lang"
 	echo
 }
 
 print_fix_section() {
 	local lang="$1"
-	local rows="$2"
-	local severity="$3"
 	local i
+	local -a items=()
+	local item
+	local item_severity
+	local col1
+	local col2
+	local col3
+	local col4
 
-	[ "$add_fix" -eq 1 ] || return 0
+	if [ "$lang" = "CN" ]; then
+		items=("${fix_items_cn[@]}")
+	else
+		items=("${fix_items_en[@]}")
+	fi
+
+	[ "${#items[@]}" -gt 0 ] || return 0
 
 	printf '### Fixed\n\n'
 	get_fix_header "$lang"
 
 	i=1
-	while [ "$i" -le "$rows" ]; do
-		if [ "$lang" = "CN" ]; then
-			printf '| %d     | %s |          |          |          |\n' "$i" "$severity"
-		else
-			printf '| %d     | %s |        |                   |              |\n' "$i" "$severity"
-		fi
+	while [ "$i" -le "${#items[@]}" ]; do
+		item="${items[$((i - 1))]}"
+		IFS='|' read -r item_severity col1 col2 col3 col4 <<EOF
+$item
+EOF
+		[ -z "$col4" ] || {
+			echo "Invalid fix item: $item" >&2
+			exit 1
+		}
+		item_severity=$(format_severity "$lang" "$item_severity")
+		printf '| %d     | %s | %s | %s | %s |\n' \
+			"$i" "$item_severity" "$col1" "$col2" "$col3"
 		i=$((i + 1))
 	done
 	echo
@@ -373,13 +388,24 @@ insert_template() {
 	local tmp
 	local section_title
 	local table_file
-	local header_severity
-	local fix_row_severity
+	local header_severity=
 
 	section_title=$(get_section_title)
 	table_file=$(get_table_file)
-	header_severity=$(format_severity "$lang" "$new_severity")
-	fix_row_severity=$(format_severity "$lang" "$fix_severity")
+	if [ -n "$summary_severity" ]; then
+		header_severity="$summary_severity"
+	elif [ "$lang" = "CN" ] && [ "${#fix_items_cn[@]}" -gt 0 ]; then
+		IFS='|' read -r header_severity _ <<EOF
+${fix_items_cn[0]}
+EOF
+	elif [ "$lang" = "EN" ] && [ "${#fix_items_en[@]}" -gt 0 ]; then
+		IFS='|' read -r header_severity _ <<EOF
+${fix_items_en[0]}
+EOF
+	else
+		header_severity="moderate"
+	fi
+	header_severity=$(format_severity "$lang" "$header_severity")
 
 	if [ ! -f "$target" ]; then
 		echo "Missing file: $target" >&2
@@ -392,7 +418,7 @@ insert_template() {
 		echo
 		print_summary_section "$lang" "$section_title" "$table_file" "$build_commit" "$header_severity"
 		print_new_section "$lang"
-		print_fix_section "$lang" "$fix_rows" "$fix_row_severity"
+		print_fix_section "$lang"
 		echo "------"
 		sed -n '2,$p' "$target"
 	} > "$tmp"
@@ -405,5 +431,4 @@ insert_template \
 insert_template \
 	"$repo_dir/doc/release/${plat_upper}_EN.md" \
 	"EN"
-
-git diff doc/release/
+git diff HEAD doc/release/
