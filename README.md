@@ -250,6 +250,8 @@ Description:
 
 ## Release Documents
 
+### Content Requirements
+
 When binary files are updated, please update both the Chinese and English documents under `doc/release/` accordingly. Refer to the existing documents for the specific format. Important notes:
 
 - `File`: If multiple files are updated, `{}` can be used as a wildcard expression.
@@ -278,3 +280,13 @@ When binary files are updated, please update both the Chinese and English docume
 - Insert a horizontal separator at the end after the update is complete: `------`.
 
 - Run the pre-submission check: `./scripts/checkpatch.sh`.
+
+### **Auto Generation**
+
+In addition to manually adding release document content, you can also modify `scripts/doc-template.txt` as needed, and then run the following command to automatically generate the corresponding content for `doc/release/*.md`.
+
+```shell
+./scripts/release-doc.sh -f scripts/doc-template.txt
+```
+
+> With this approach, you only need to focus on the document content itself, without worrying about the Markdown document structure or content format.

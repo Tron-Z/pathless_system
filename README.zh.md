@@ -250,6 +250,8 @@ Change-Id: I0d35a045596666aee54be6e2cf7efd01788bcc58
 
 ## Release文档
 
+### 内容要求
+
 Binary文件更新时请同步更新`doc/release/`下的中、英文档，具体格式请参考现有文档。几点重要说明：
 
 - `文件`：如果更新的是多个文件，可用`{}` 模糊表示。
@@ -276,3 +278,13 @@ Binary文件更新时请同步更新`doc/release/`下的中、英文档，具体
 - 更新完成后在末尾插入水平分隔符：`------`。
 
 - 提交前执行检查： `./scripts/checkpatch.sh` 。
+
+### **自动生成**
+
+除了手动添加Release文档内容，用户还可以按需修改 `scripts/doc-template.txt` ，然后执行下面的命令自动生成对应的`doc/release/*.md`内容。
+
+```shell
+./scripts/release-doc.sh -f scripts/doc-template.txt
+```
+
+> 这种方式下用户只需要关注文档内容本身，不需要关心md文档和内容格式。
