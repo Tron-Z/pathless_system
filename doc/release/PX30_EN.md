@@ -1,5 +1,17 @@
 # PX30 Release Note
 
+## px30_bl31_v1.36.elf
+
+| Date | File | Build commit | Severity |
+| ---- | :--- | ------------ | -------- |
+| 2026-06-03 | px30_bl31_v1.36.elf | 9ce22f446 | important |
+
+### New
+
+1. Add check pd_vo power status.
+
+------
+
 ## px30_bl32_v2.21.bin
 
 | Date       | File                | Build Commit | Severity  |
