@@ -86,7 +86,7 @@ append_fix_item() {
 detect_lang() {
 	local text="$1"
 
-	if printf '%s' "$text" | grep -q '[一-龥]'; then
+	if printf '%s' "$text" | perl -CS -ne 'exit(/\p{Han}/ ? 0 : 1)'; then
 		printf 'CN'
 	else
 		printf 'EN'
