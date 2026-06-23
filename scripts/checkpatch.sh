@@ -416,6 +416,62 @@ function check_trust_ini_extra_files()
 	done
 }
 
+function extract_ini_bin_refs()
+{
+	local FILE=$1
+
+	sed -n 's/^[^=]\+=\(bin\/[^,[:space:]\r]*\).*$/\1/p' ${FILE} \
+		| tr -d '\r' \
+		| sort -u
+}
+
+function check_ini_unused_bin_files()
+{
+	local FILE
+	local OLD_REF
+	local TMP_OLD_INI="scripts/.checkpatch_old_ini.tmp"
+	local TMP_OLD_REFS="scripts/.checkpatch_old_refs.tmp"
+	local TARGET_COMMIT
+	local PARENT_COMMIT
+
+	TARGET_COMMIT=${ARG_COMMIT:-HEAD}
+	PARENT_COMMIT=$(git rev-parse ${TARGET_COMMIT}^ 2>/dev/null) || return
+
+	if ! git log ${TARGET_COMMIT} -1 --name-only --format='' | grep -Eq '\.ini$'; then
+		return
+	fi
+
+	echo "Checking unused file refs ..."
+	for FILE in $(git log ${TARGET_COMMIT} -1 --name-only --format='' | sed -n '/\.ini$/p'); do
+		if ! git diff-tree --no-commit-id --name-status -r ${TARGET_COMMIT} | grep -Eq "^[MD][[:space:]]+${FILE}$"; then
+			continue
+		fi
+
+		if ! git show ${PARENT_COMMIT}:${FILE} > ${TMP_OLD_INI} 2>/dev/null; then
+			continue
+		fi
+
+		extract_ini_bin_refs ${TMP_OLD_INI} > ${TMP_OLD_REFS}
+		while read OLD_REF; do
+			if [ -z "${OLD_REF}" ]; then
+				continue
+			fi
+
+			if grep -R -q -F "${OLD_REF}" --include='*.ini' RKBOOT RKTRUST; then
+				continue
+			fi
+
+			if [ -e "${OLD_REF}" ]; then
+				echo "ERROR: Please delete ${OLD_REF}, which is no longer referenced by any ini"
+				rm -f ${TMP_OLD_INI} ${TMP_OLD_REFS}
+				exit 1
+			fi
+		done < ${TMP_OLD_REFS}
+	done
+
+	rm -f ${TMP_OLD_INI} ${TMP_OLD_REFS}
+}
+
 function pack_trust_image()
 {
 	# Pack 32-bit trust
@@ -643,6 +699,7 @@ function finish()
 
 check_commit_message
 check_mode
+check_ini_unused_bin_files
 check_version
 check_docs
 check_dirty
