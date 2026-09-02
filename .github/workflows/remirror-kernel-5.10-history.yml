@@ -1,14 +1,14 @@
 name: Remirror pathless-5.10 history
 
-# Replace orphan snapshot with a pushable truncated upstream history.
-# Shallow packs are rewritten via graft so GitHub accepts the push.
+# Rebuild pathless-5.10-rk35xx with pushable upstream history (not orphan).
+# depth=0 tries full history first; on failure grafts a truncated window.
 on:
   workflow_dispatch:
     inputs:
       depth:
-        description: 'How many recent upstream commits to keep (recommended 300-800)'
+        description: 'Commits to keep (0 = try full history, else e.g. 2000)'
         required: true
-        default: '400'
+        default: '2000'
         type: string
 
 permissions:
@@ -36,8 +36,10 @@ jobs:
           set -euo pipefail
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git config --global http.postBuffer 524288000
+          git config --global http.postBuffer 2147483648
           git config --global http.version HTTP/1.1
+          git config --global http.lowSpeedLimit 0
+          git config --global http.lowSpeedTime 999999
 
           OWNER=Tron-Z
           DST_URL="https://x-access-token:${TOKEN}@github.com/${OWNER}/pathless_system.git"
@@ -45,42 +47,62 @@ jobs:
           UP_BRANCH=orange-pi-5.10-rk35xx
           DST_BRANCH=pathless-5.10-rk35xx
 
-          echo "Cloning upstream ${UP_BRANCH} depth=${DEPTH}"
-          rm -rf /tmp/up-wt
-          git clone --depth "${DEPTH}" --single-branch --branch "${UP_BRANCH}" \
-            "${UP_URL}" /tmp/up-wt
-          cd /tmp/up-wt
+          push_branch() {
+            local dir=$1
+            git -C "${dir}" remote remove origin 2>/dev/null || true
+            git -C "${dir}" remote add origin "${DST_URL}"
+            local attempt=1
+            until git -C "${dir}" push --force --no-thin origin "HEAD:refs/heads/${DST_BRANCH}"; do
+              if [ "$attempt" -ge 5 ]; then
+                return 1
+              fi
+              echo "Push attempt ${attempt} failed; retrying in 45s..."
+              attempt=$((attempt + 1))
+              sleep 45
+            done
+          }
 
-          echo "Pre-graft commit count: $(git rev-list --count HEAD)"
-          # Oldest commit in this shallow window (avoid SIGPIPE under pipefail).
-          ROOT=$(git rev-list --reverse HEAD | sed -n '1p')
-          echo "Grafting root commit: ${ROOT}"
-          test -n "${ROOT}"
-          git replace --graft "${ROOT}"
+          graft_and_push() {
+            local depth=$1
+            echo "=== Graft mode depth=${depth} ==="
+            rm -rf /tmp/up-wt
+            git clone --depth "${depth}" --single-branch --branch "${UP_BRANCH}" \
+              "${UP_URL}" /tmp/up-wt
+            cd /tmp/up-wt
+            echo "Pre-graft commit count: $(git rev-list --count HEAD)"
+            ROOT=$(git rev-list --reverse HEAD | sed -n '1p')
+            echo "Grafting root commit: ${ROOT}"
+            test -n "${ROOT}"
+            git replace --graft "${ROOT}"
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq git-filter-repo
+            git filter-repo --force
+            rm -f .git/shallow || true
+            echo "Post-rewrite commit count: $(git rev-list --count HEAD)"
+            git log -3 --oneline
+            push_branch /tmp/up-wt
+          }
 
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq git-filter-repo
-          # Materialize graft into real history (removes shallow boundary).
-          git filter-repo --force
-          rm -f .git/shallow || true
-
-          echo "Post-rewrite commit count: $(git rev-list --count HEAD)"
-          git log -3 --oneline
-
-          git remote add origin "${DST_URL}"
-
-          attempt=1
-          until git push --force --no-thin origin "HEAD:refs/heads/${DST_BRANCH}"; do
-            if [ "$attempt" -ge 5 ]; then
-              echo "Push failed after ${attempt} attempts"
-              exit 1
+          if [ "${DEPTH}" = "0" ]; then
+            echo "=== Trying full-history bare mirror ==="
+            rm -rf /tmp/up-bare
+            if git clone --bare --single-branch --branch "${UP_BRANCH}" "${UP_URL}" /tmp/up-bare; then
+              echo "Full clone commit count: $(git -C /tmp/up-bare rev-list --count "${UP_BRANCH}")"
+              if git -C /tmp/up-bare push --force --no-thin "${DST_URL}" \
+                  "${UP_BRANCH}:refs/heads/${DST_BRANCH}"; then
+                echo "Full-history push succeeded"
+                exit 0
+              fi
+              echo "Full-history push failed; falling back to graft depth=2000"
+            else
+              echo "Full clone failed; falling back to graft depth=2000"
             fi
-            echo "Push attempt ${attempt} failed; retrying in 45s..."
-            attempt=$((attempt + 1))
-            sleep 45
-          done
+            graft_and_push 2000
+          else
+            graft_and_push "${DEPTH}"
+          fi
 
-      - name: Restore Pathless DTS and scrub orangepi files
+      - name: Restore Pathless DTS and scrub orangepi board files
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -110,16 +132,16 @@ jobs:
             fi
           fi
 
+          # Only scrub orangepi/xunlong *paths*; keep Pathless files.
           mapfile -t FILES < <(git ls-files | grep -iE 'orangepi|orange-pi|xunlong' || true)
           if [ ${#FILES[@]} -gt 0 ]; then
             echo "Removing ${#FILES[@]} orangepi/xunlong paths"
             git rm -f --ignore-unmatch -- "${FILES[@]}" || true
           fi
-          while IFS= read -r f; do
-            [ -f "$f" ] || continue
-            sed -i -E '/orangepi|orange-pi|xunlong|OrangePi|ORANGEPI/Id' "$f" || true
-          done < <(git ls-files | grep -E '(Makefile|Kconfig)$' || true)
-
+          # Narrow Makefile scrub: drop orangepi dtb lines only, not every match.
+          if [ -f "${MK}" ]; then
+            sed -i -E '/orangepi|orange-pi|xunlong|OrangePi|ORANGEPI/d' "${MK}" || true
+          fi
           if [ -f "${MK}" ] && ! grep -q 'rk3566-pathless-3b.dtb' "${MK}"; then
             echo 'dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-pathless-3b.dtb' >> "${MK}"
           fi
@@ -129,25 +151,37 @@ jobs:
             git commit -m "pathless: restore RK3566 Pathless DTS and scrub orangepi leftovers"
             git push origin "HEAD:refs/heads/${BRANCH}"
           fi
-          git log -5 --oneline
           test -f "${DTS_DST}"
-          echo "Commit count on tip clone: $(git rev-list --count HEAD) (depth-1 limited)"
+          grep -q 'rk3566-pathless-3b.dtb' "${MK}"
+          git log -5 --oneline
 
       - name: Verify remote history depth
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPTH: ${{ inputs.depth }}
         run: |
           set -euo pipefail
           DST_URL="https://x-access-token:${TOKEN}@github.com/Tron-Z/pathless_system.git"
           rm -rf /tmp/count
-          git clone --depth 500 --filter=blob:none --single-branch --branch pathless-5.10-rk35xx \
-            "${DST_URL}" /tmp/count
+          # Clone deep enough to see grafted history (cap 3000 for time/disk).
+          CLONE_DEPTH=3000
+          if [ "${DEPTH}" != "0" ] && [ "${DEPTH}" -gt 0 ] && [ "${DEPTH}" -lt 3000 ]; then
+            CLONE_DEPTH=$((DEPTH + 50))
+          fi
+          git clone --depth "${CLONE_DEPTH}" --filter=blob:none --single-branch \
+            --branch pathless-5.10-rk35xx "${DST_URL}" /tmp/count
           cd /tmp/count
           COUNT=$(git rev-list --count HEAD)
-          echo "Visible commit count (depth<=500 clone): ${COUNT}"
+          echo "Visible commit count (clone depth ${CLONE_DEPTH}): ${COUNT}"
           git log -5 --oneline
           test -f arch/arm64/boot/dts/rockchip/rk3566-pathless-3b.dts
-          if [ "${COUNT}" -lt 50 ]; then
-            echo "History still too short"
+          ! test -f arch/arm64/boot/dts/rockchip/rk3566-orangepi-3b.dts
+          MIN=100
+          if [ "${DEPTH}" != "0" ] && [ "${DEPTH}" -gt 100 ]; then
+            MIN=$((DEPTH * 8 / 10))
+          fi
+          if [ "${COUNT}" -lt "${MIN}" ]; then
+            echo "History too short: have ${COUNT}, want >= ${MIN}"
             exit 1
           fi
+          echo "OK: pathless-5.10-rk35xx history depth verified (${COUNT} commits)"
