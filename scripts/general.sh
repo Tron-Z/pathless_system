@@ -1921,22 +1921,8 @@ get_pathless_url()
 
 install_wiringop()
 {
-	local wiringpi_deb_name="wiringpi-2.58-1.deb"
-	local wiringpi_pkg="${EXTER}/packages/bsp/debs/${ARCH}/${wiringpi_deb_name}"
-	local wiringpi_cache="${EXTER}/cache/debs/${ARCH}/${wiringpi_deb_name}"
-
-	# Prefer tracked package blob; keep cache copy for compatibility
-	if [[ -f $wiringpi_pkg ]]; then
-		mkdir -p "${EXTER}/cache/debs/${ARCH}"
-		cp -f "$wiringpi_pkg" "$wiringpi_cache"
-	fi
-
-	if [[ -f $wiringpi_cache ]]; then
-		install_deb_chroot "$wiringpi_cache"
-		chroot "${SDCARD}" /bin/bash -c "apt-mark hold wiringpi" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
-	else
-		display_alert "Skipping wiringpi deb" "not found: ${wiringpi_deb_name}" "wrn"
-	fi
+	install_deb_chroot "$EXTER/cache/debs/${ARCH}/wiringpi-2.58-1.deb"
+	chroot "${SDCARD}" /bin/bash -c "apt-mark hold wiringpi" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
 
 	if [[ ${IGNORE_UPDATES} != yes ]]; then
 
@@ -1946,12 +1932,8 @@ install_wiringop()
 
 	fi
 
-	if [[ -d ${EXTER}/cache/sources/wiringOP/next ]]; then
-		cp ${EXTER}/cache/sources/wiringOP/next ${SDCARD}/usr/src/wiringOP -rfa
-	fi
-	if [[ -d ${EXTER}/cache/sources/wiringOP-Python/next ]]; then
-		cp ${EXTER}/cache/sources/wiringOP-Python/next ${SDCARD}/usr/src/wiringOP-Python -rfa
-	fi
+	cp ${EXTER}/cache/sources/wiringOP/next ${SDCARD}/usr/src/wiringOP -rfa
+	cp ${EXTER}/cache/sources/wiringOP-Python/next ${SDCARD}/usr/src/wiringOP-Python -rfa
 
 	rm $SDCARD/root/*.deb >/dev/null 2>&1
 }

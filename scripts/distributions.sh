@@ -476,11 +476,7 @@ FAMILY_TWEAKS
 	chroot "${SDCARD}" /bin/bash -c "systemctl --no-reload enable pathless-hardware-monitor.service >/dev/null 2>&1"
 
 	# copy "first run automated config, optional user configured"
-	if [[ -f ${EXTER}/packages/bsp/pathless_first_run.txt.template ]]; then
-		cp ${EXTER}/packages/bsp/pathless_first_run.txt.template "${SDCARD}"/boot/pathless_first_run.txt.template
-	else
-		display_alert "Missing first-run template" "packages/bsp/pathless_first_run.txt.template" "wrn"
-	fi
+ 	cp ${EXTER}/packages/bsp/pathless_first_run.txt.template "${SDCARD}"/boot/pathless_first_run.txt.template
 
 	## switch to beta repository at this stage if building nightly images
 	#[[ $IMAGE_TYPE == nightly ]] \
