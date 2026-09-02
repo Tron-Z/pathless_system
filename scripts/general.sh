@@ -1664,13 +1664,22 @@ prepare_host()
 
 
 
+# TUNA/BFSU WAF rejects aria2/curl default User-Agent with HTTP 403
+# ("software with uncommon characteristics"). Keep mirrors unchanged; look like a browser.
+DOWNLOAD_HTTP_UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
+function curl_mirror_head()
+{
+	timeout 15 curl --head --fail --silent -A "${DOWNLOAD_HTTP_UA}" "$@"
+}
+
 function webseed ()
 {
 	# list of mirrors that host our files
 	unset text
 	# Hardcoded to EU mirrors since
-	local CCODE=$(curl -s redirect.armbian.com/geoip | jq '.continent.code' -r)
-	WEBSEED=($(curl -s https://redirect.armbian.com/mirrors | jq -r '.'${CCODE}' | .[] | values'))
+	local CCODE=$(curl -s -A "${DOWNLOAD_HTTP_UA}" redirect.armbian.com/geoip | jq '.continent.code' -r)
+	WEBSEED=($(curl -s -A "${DOWNLOAD_HTTP_UA}" https://redirect.armbian.com/mirrors | jq -r '.'${CCODE}' | .[] | values'))
 	# aria2 simply split chunks based on sources count not depending on download speed
 	# when selecting china mirrors, use only China mirror, others are very slow there
 	if [[ $DOWNLOAD_MIRROR == china ]]; then
@@ -1704,6 +1713,7 @@ download_and_verify()
 	local filename=$2
 	local localdir=$SRC/toolchains
 	local dirname=${filename//.tar.xz}
+	local aria_ua=(--user-agent="${DOWNLOAD_HTTP_UA}")
 
         if [[ $DOWNLOAD_MIRROR == china ]]; then
 			local server="https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/"
@@ -1722,7 +1732,7 @@ download_and_verify()
 	fi
 
 	# switch to china mirror if US timeouts
-	timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null
+	curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1
 	if [[ $? -ne 7 && $? -ne 22 && $? -ne 0 ]]; then
 		display_alert "Timeout from $server" "retrying" "info"
 		server="https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/"
@@ -1731,7 +1741,7 @@ download_and_verify()
 		fi
 
 		# switch to another china mirror if tuna timeouts
-		timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null
+		curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1
 		if [[ $? -ne 7 && $? -ne 22 && $? -ne 0 ]]; then
 			display_alert "Timeout from $server" "retrying" "info"
 			server="https://mirrors.bfsu.edu.cn/armbian-releases/"
@@ -1742,7 +1752,7 @@ download_and_verify()
 	fi
 
 	# check if file exists on remote server before running aria2 downloader
-	[[ ! `timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename}` ]] && return
+	curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1 || return
 
 	cd "${localdir}" || exit
 
@@ -1750,12 +1760,12 @@ download_and_verify()
 	if [[ -f "${EXTER}"/config/torrents/${filename}.asc ]]; then
 		local torrent="${EXTER}"/config/torrents/${filename}.torrent
 		ln -sf "${EXTER}/config/torrents/${filename}.asc" "${localdir}/${filename}.asc"
-	elif [[ ! `timeout 10 curl --head --fail --silent "${server}${remotedir}/${filename}.asc"` ]]; then
+	elif ! curl_mirror_head "${server}${remotedir}/${filename}.asc" >/dev/null 2>&1; then
 		return
 	else
 		# download control file
 		local torrent=${server}$remotedir/${filename}.torrent
-		aria2c --download-result=hide --disable-ipv6=true --summary-interval=0 --console-log-level=error --auto-file-renaming=false \
+		aria2c "${aria_ua[@]}" --download-result=hide --disable-ipv6=true --summary-interval=0 --console-log-level=error --auto-file-renaming=false \
 		--continue=false --allow-overwrite=true --dir="${localdir}" ${server}${remotedir}/${filename}.asc $(webseed "$remotedir/${filename}.asc") -o "${filename}.asc"
 		[[ $? -ne 0 ]] && display_alert "Failed to download control file" "" "wrn"
 	fi
@@ -1764,7 +1774,7 @@ download_and_verify()
 	if [[ ${USE_TORRENT} == "yes" ]]; then
 
 		display_alert "downloading using torrent network" "$filename"
-		local ariatorrent="--summary-interval=0 --auto-save-interval=0 --seed-time=0 --bt-stop-timeout=120 --console-log-level=error \
+		local ariatorrent="--user-agent=${DOWNLOAD_HTTP_UA} --summary-interval=0 --auto-save-interval=0 --seed-time=0 --bt-stop-timeout=120 --console-log-level=error \
 		--allow-overwrite=true --download-result=hide --rpc-save-upload-metadata=false --auto-file-renaming=false \
 		--file-allocation=trunc --continue=true ${torrent} \
 		--dht-file-path=$EXTER/cache/.aria2/dht.dat --disable-ipv6=true --stderr --follow-torrent=mem --dir=${localdir}"
@@ -1785,10 +1795,11 @@ download_and_verify()
 
 	# direct download if torrent fails
 	if [[ ! -f "${localdir}/${filename}.complete" ]]; then
-		if [[ ! `timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null` ]]; then
+		if curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1; then
 			display_alert "downloading using http(s) network" "$filename"
-			aria2c --download-result=hide --rpc-save-upload-metadata=false --console-log-level=error \
-			--dht-file-path="${SRC}"/cache/.aria2/dht.dat --disable-ipv6=true --summary-interval=0 --auto-file-renaming=false --dir="${localdir}" ${server}${remotedir}/${filename} $(webseed "${remotedir}/${filename}") -o "${filename}"
+			aria2c "${aria_ua[@]}" --download-result=hide --rpc-save-upload-metadata=false --console-log-level=error \
+			--dht-file-path="${SRC}"/cache/.aria2/dht.dat --disable-ipv6=true --summary-interval=0 --auto-file-renaming=false --dir="${localdir}" \
+			${server}${remotedir}/${filename} $(webseed "${remotedir}/${filename}") -o "${filename}"
 			# mark complete
 			[[ $? -eq 0 ]] && touch "${localdir}/${filename}.complete" && echo ""
 
