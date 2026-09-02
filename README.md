@@ -25,18 +25,24 @@ sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=image RELEASE=jam
 
 ## 构建选项（BUILD_OPT）
 
-| 值 | 说明 |
+运行 `sudo ./build.sh` 时会弹出菜单（与 Orange Pi 一致，另增加仅打包项）：
+
+| 选项 | 说明 |
 |:--|:--|
 | `u-boot` | 仅编译 U-Boot |
 | `kernel` | 仅编译内核 |
-| `rootfs` | rootfs 及 deb 包 |
-| `image` | **完整镜像**（推荐，含上述全部） |
+| `rootfs` | 仅编译 rootfs 及 deb 包 |
+| `image` | 完整编译并打包镜像 |
+| `pack` | **仅打包镜像**（不编译，使用 `output/debs/` 已有 deb） |
 
-`userpatches/config-default.conf` 已默认 `BUILD_OPT=image`。非交互全量编译：
+非交互指定目标示例：
 
 ```bash
 sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=image RELEASE=jammy BUILD_DESKTOP=no
+sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=pack RELEASE=jammy BUILD_DESKTOP=no
 ```
+
+`userpatches/config-default.conf` 中 `BUILD_OPT` 留空即可每次启动显示菜单。
 
 ## 从 Windows 拷贝到 Linux 后报错 `$'\r'`
 

@@ -177,16 +177,17 @@ LINUXFAMILY="${BOARDFAMILY}"
 if [[ -z $BUILD_OPT ]]; then
 
 	if [[ $BOARDFAMILY != "cix" ]]; then
-		options+=("u-boot"	 "U-boot package")
+		options+=("u-boot"	 "U-boot  — 仅编译 U-Boot")
 	fi
-	options+=("kernel"	 "Kernel package")
-	options+=("rootfs"	 "Rootfs and all deb packages")
-	options+=("image"	 "Full OS image for flashing")
+	options+=("kernel"	 "Kernel  — 仅编译内核")
+	options+=("rootfs"	 "Rootfs  — 仅编译 rootfs 及 deb 包")
+	options+=("image"	 "Image   — 完整编译并打包镜像")
+	options+=("pack"	 "Pack    — 仅打包镜像 (不编译, 使用已有 deb)")
 
 	if [[ $BOARDFAMILY != "cix" ]]; then
-		menustr="Compile image | rootfs | kernel | u-boot"
+		menustr="请选择编译目标: u-boot | kernel | rootfs | image | pack"
 	else
-		menustr="Compile image | rootfs | kernel"
+		menustr="请选择编译目标: kernel | rootfs | image | pack"
 	fi
 	BUILD_OPT=$(whiptail --title "${titlestr}" --backtitle "${backtitle}" --notags \
 			  --menu "${menustr}" "${TTY_Y}" "${TTY_X}" $((TTY_Y - 8))  \
@@ -245,7 +246,7 @@ if [[ -z $BRANCH ]]; then
 
 fi
 
-if [[ $BUILD_OPT =~ rootfs|image && -z $RELEASE ]]; then
+if [[ $BUILD_OPT =~ rootfs|image|pack && -z $RELEASE ]]; then
 
 	options=()
 
@@ -265,7 +266,7 @@ fi
 # don't show desktop option if we choose minimal build
 [[ $BUILD_MINIMAL == yes ]] && BUILD_DESKTOP=no
 
-if [[ $BUILD_OPT =~ rootfs|image && -z $BUILD_DESKTOP ]]; then
+if [[ $BUILD_OPT =~ rootfs|image|pack && -z $BUILD_DESKTOP ]]; then
 
 	# read distribution support status which is written to the pathless-release file
 	set_distribution_status
@@ -288,7 +289,7 @@ if [[ $BUILD_OPT =~ rootfs|image && -z $BUILD_DESKTOP ]]; then
 
 fi
 
-if [[ $BUILD_OPT =~ rootfs|image && $BUILD_DESKTOP == no && -z $BUILD_MINIMAL ]]; then
+if [[ $BUILD_OPT =~ rootfs|image|pack && $BUILD_DESKTOP == no && -z $BUILD_MINIMAL ]]; then
 
 	options=()
 	options+=("no" "Standard image with console interface")
@@ -429,7 +430,7 @@ if [[ ${IGNORE_UPDATES} != yes ]]; then
 
 	if [[ ${BOARDFAMILY} == "rockchip-rk356x" && $RELEASE =~ bullseye|focal|jammy|raspi ]]; then
 
-		[[ ${BUILD_OPT} == image ]] && fetch_from_repo "${PATHLESS_ROCKCHIP_REPO}" "${EXTER}/cache/sources/rk35xx_packages" "${PATHLESS_RK35XX_PACKAGES_BRANCH}"
+		[[ ${BUILD_OPT} =~ image|pack ]] && fetch_from_repo "${PATHLESS_ROCKCHIP_REPO}" "${EXTER}/cache/sources/rk35xx_packages" "${PATHLESS_RK35XX_PACKAGES_BRANCH}"
 
 	fi
 
@@ -485,7 +486,13 @@ if [[ $BUILD_OPT == kernel || $BUILD_OPT == image ]]; then
 	fi
 fi
 
-if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image ]]; then
+if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image || $BUILD_OPT == pack ]]; then
+
+	if [[ $BUILD_OPT == pack ]]; then
+		display_alert "Pack-only mode" "Skip compile; use existing debs in ${DEB_STORAGE}" "info"
+	fi
+
+	if [[ $BUILD_OPT != pack ]]; then
 
 	# Compile pathless-config if packed .deb does not exist or use the one from Pathless
 	if [[ ! -f ${DEB_STORAGE}/pathless-config_${REVISION}_all.deb ]]; then
@@ -517,14 +524,6 @@ if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image ]]; then
 
 		fi
 
-		#if ! ls "${DEB_STORAGE}/pathless-firmware-full_${REVISION}_all.deb" 1> /dev/null 2>&1; then
-
-			#FULL="-full"
-			#REPLACE=""
-			#compile_firmware
-
-		#fi
-
 	fi
 
 	overlayfs_wrapper "cleanup"
@@ -532,15 +531,14 @@ if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image ]]; then
 	# create board support package
 	[[ -n $RELEASE && ! -f ${DEB_STORAGE}/$RELEASE/${BSP_CLI_PACKAGE_FULLNAME}.deb ]] && create_board_package
 
-	# create desktop package
-	#[[ -n $RELEASE && $DESKTOP_ENVIRONMENT && ! -f ${DEB_STORAGE}/$RELEASE/${CHOSEN_DESKTOP}_${REVISION}_all.deb ]] && create_desktop_package
-	#[[ -n $RELEASE && $DESKTOP_ENVIRONMENT && ! -f ${DEB_STORAGE}/${RELEASE}/${BSP_DESKTOP_PACKAGE_FULLNAME}.deb ]] && create_bsp_desktop_package
 	[[ -n $RELEASE && $DESKTOP_ENVIRONMENT ]] && create_desktop_package
 	[[ -n $RELEASE && $DESKTOP_ENVIRONMENT ]] && create_bsp_desktop_package
 	
 	# build additional packages
 	[[ $EXTERNAL_NEW == compile ]] && chroot_build_packages
-	
+
+	fi
+
 	[[ $BSP_BUILD != yes ]] && debootstrap_ng
 
 fi
