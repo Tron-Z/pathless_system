@@ -1,0 +1,45 @@
+name: Migrate into pathless_system
+
+# One-shot (or re-runnable) mirror of legacy split repos into pathless_system branches.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror legacy repos into pathless_system branches
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          OWNER=Tron-Z
+          DST=pathless_system
+          DST_URL="https://x-access-token:${TOKEN}@github.com/${OWNER}/${DST}.git"
+
+          mirror() {
+            local src=$1 src_branch=$2 dst_branch=$3
+            echo "==> ${src}:${src_branch} -> ${DST}:${dst_branch}"
+            rm -rf /tmp/mrepo
+            git clone --bare --branch "${src_branch}" --single-branch \
+              "https://github.com/${OWNER}/${src}.git" /tmp/mrepo
+            git -C /tmp/mrepo push --force "${DST_URL}" "${src_branch}:${dst_branch}"
+          }
+
+          mirror pathless-bsp-kernel pathless-6.6-rk35xx pathless-6.6-rk35xx
+          mirror pathless-bsp-kernel pathless-5.10-rk35xx pathless-5.10-rk35xx
+          mirror pathless-bsp-u-boot v2017.09-rk3588 u-boot
+          mirror pathless-bsp-firmware master firmware
+          mirror pathless-bsp-config master config
+          mirror pathless-rockchip rkbin rkbin
+          mirror pathless-rockchip rk35xx_packages rk35xx_packages
+          mirror oh-my-zsh master oh-my-zsh
+          mirror evalcache master evalcache
+          mirror wiringOP next wiringOP
+          mirror wiringOP-Python next wiringOP-Python
+
+          echo "Branches now:"
+          git ls-remote --heads "${DST_URL}" | sed 's#.*refs/heads/##'

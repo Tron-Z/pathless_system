@@ -97,13 +97,13 @@ MAINLINE_KERNEL_DIR="$SRC/kernel"
 
 case $UBOOT_MIRROR in
 	gitee)
-		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/pathless-bsp-u-boot.git'
+		MAINLINE_UBOOT_SOURCE="${PATHLESS_SYSTEM_REPO:-https://github.com/Tron-Z/pathless_system.git}"
 		;;
 	github)
-		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/pathless-bsp-u-boot.git'
+		MAINLINE_UBOOT_SOURCE="${PATHLESS_SYSTEM_REPO:-https://github.com/Tron-Z/pathless_system.git}"
 		;;
 	*)
-		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/pathless-bsp-u-boot.git'
+		MAINLINE_UBOOT_SOURCE="${PATHLESS_SYSTEM_REPO:-https://github.com/Tron-Z/pathless_system.git}"
 		;;
 esac
 

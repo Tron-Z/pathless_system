@@ -1,45 +1,46 @@
 #!/bin/bash
 #
-# Mirror legacy split repos into unified pathless-bsp / pathless-3rdparty.
-# Run once on a machine that can reach GitHub (or via gh-proxy).
+# Mirror all legacy Pathless split repos into pathless_system (multi-branch).
+# Safe to re-run (force push branches). Does NOT delete old repos.
 #
 set -euo pipefail
 
-GIT_SERVER="${GIT_SERVER:-https://github.com/Tron-Z}"
-# Optional: export GIT_PROXY_PREFIX="https://gh-proxy.com/https://github.com"
+OWNER="${OWNER:-Tron-Z}"
+DST_REPO="${DST_REPO:-pathless_system}"
 SRC_PREFIX="${GIT_PROXY_PREFIX:-https://github.com}"
-DST_AUTH_PREFIX="${DST_AUTH_PREFIX:-https://github.com}"
+DST_PREFIX="${DST_GIT_PREFIX:-https://github.com}"
 
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
 mirror_branch() {
-	local src_repo=$1 src_branch=$2 dst_repo=$3 dst_branch=$4
+	local src_repo=$1 src_branch=$2 dst_branch=$3
 	local dir="${workdir}/${src_repo//\//_}_${src_branch}"
-	echo "==> ${src_repo}:${src_branch} -> ${dst_repo}:${dst_branch}"
+	echo "==> ${OWNER}/${src_repo}:${src_branch} -> ${OWNER}/${DST_REPO}:${dst_branch}"
+	rm -rf "${dir}"
 	git clone --bare --branch "${src_branch}" --single-branch \
-		"${SRC_PREFIX}/${src_repo}.git" "${dir}"
+		"${SRC_PREFIX}/${OWNER}/${src_repo}.git" "${dir}"
 	git -C "${dir}" push --force \
-		"${DST_AUTH_PREFIX}/${dst_repo}.git" \
+		"${DST_PREFIX}/${OWNER}/${DST_REPO}.git" \
 		"${src_branch}:${dst_branch}"
 }
 
-echo "Mirroring into unified Pathless repos..."
+echo "Mirroring into ${OWNER}/${DST_REPO} ..."
 
-mirror_branch Tron-Z/pathless-bsp-u-boot v2017.09-rk3588 Tron-Z/pathless-bsp u-boot
-mirror_branch Tron-Z/pathless-bsp-firmware master Tron-Z/pathless-bsp firmware
-mirror_branch Tron-Z/pathless-bsp-config master Tron-Z/pathless-bsp config
-mirror_branch Tron-Z/pathless-rockchip rkbin Tron-Z/pathless-bsp rkbin
-mirror_branch Tron-Z/pathless-rockchip rk35xx_packages Tron-Z/pathless-bsp rk35xx_packages
-
-mirror_branch Tron-Z/oh-my-zsh master Tron-Z/pathless-3rdparty oh-my-zsh
-mirror_branch Tron-Z/evalcache master Tron-Z/pathless-3rdparty evalcache
-mirror_branch Tron-Z/wiringOP next Tron-Z/pathless-3rdparty wiringOP
-mirror_branch Tron-Z/wiringOP-Python next Tron-Z/pathless-3rdparty wiringOP-Python
+mirror_branch pathless-bsp-kernel pathless-6.6-rk35xx pathless-6.6-rk35xx
+mirror_branch pathless-bsp-kernel pathless-5.10-rk35xx pathless-5.10-rk35xx
+mirror_branch pathless-bsp-u-boot v2017.09-rk3588 u-boot
+mirror_branch pathless-bsp-firmware master firmware
+mirror_branch pathless-bsp-config master config
+mirror_branch pathless-rockchip rkbin rkbin
+mirror_branch pathless-rockchip rk35xx_packages rk35xx_packages
+mirror_branch oh-my-zsh master oh-my-zsh
+mirror_branch evalcache master evalcache
+mirror_branch wiringOP next wiringOP
+mirror_branch wiringOP-Python next wiringOP-Python
 
 echo
-echo "Done. Verify:"
-echo "  git ls-remote ${GIT_SERVER}/pathless-bsp.git"
-echo "  git ls-remote ${GIT_SERVER}/pathless-3rdparty.git"
+echo "Done. Branches on ${DST_REPO}:"
+git ls-remote --heads "${DST_PREFIX}/${OWNER}/${DST_REPO}.git" | sed 's#.*refs/heads/##'
 echo
-echo "Legacy split repos can be archived after verification."
+echo "Next: verify build, then delete legacy repos."

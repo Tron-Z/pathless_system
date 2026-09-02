@@ -398,7 +398,7 @@ if [[ ${IGNORE_UPDATES} != yes ]]; then
 
 		if [[ $BOARD == pathless-rk3566 && $BUILD_OPT =~ u-boot|image ]]; then
 			[[ -f "${BOOTSOURCEDIR}/arch/arm/dts/rk3566-pathless-3b.dts" ]] || \
-				exit_with_error "Missing U-Boot device tree" "rm -rf ${BOOTDIR} && rebuild (need rk3566-pathless-3b.dts from pathless-bsp-u-boot)"
+				exit_with_error "Missing U-Boot device tree" "rm -rf ${BOOTDIR} && rebuild (need rk3566-pathless-3b.dts from pathless_system u-boot branch)"
 		fi
 
 	fi
@@ -429,7 +429,7 @@ if [[ ${IGNORE_UPDATES} != yes ]]; then
 
 	if [[ $BOARD == pathless-rk3566 && $BUILD_OPT =~ kernel|image ]]; then
 		[[ -f "${LINUXSOURCEDIR}/arch/arm64/boot/dts/rockchip/rk3566-pathless-3b.dts" ]] || \
-			exit_with_error "Missing kernel device tree" "rm -rf ${KERNELDIR} && rebuild (need rk3566-pathless-3b.dts from pathless-bsp-kernel)"
+			exit_with_error "Missing kernel device tree" "rm -rf ${KERNELDIR} && rebuild (need rk3566-pathless-3b.dts from pathless_system kernel branch)"
 	fi
 
 	if [[ -n ${ATFSOURCE} ]]; then
