@@ -97,10 +97,10 @@ MAINLINE_KERNEL_DIR="$SRC/kernel"
 
 case $UBOOT_MIRROR in
 	gitee)
-		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/u-boot-rk3566.git'
+		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/pathless-bsp-u-boot.git'
 		;;
 	github)
-		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/u-boot-rk3566.git'
+		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/pathless-bsp-u-boot.git'
 		;;
 	*)
 		MAINLINE_UBOOT_SOURCE='https://source.denx.de/u-boot/u-boot.git'

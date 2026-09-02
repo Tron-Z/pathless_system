@@ -429,7 +429,7 @@ if [[ ${IGNORE_UPDATES} != yes ]]; then
 
 	if [[ ${BOARDFAMILY} == "rockchip-rk356x" && $RELEASE =~ bullseye|focal|jammy|raspi ]]; then
 
-		[[ ${BUILD_OPT} == image ]] && fetch_from_repo "https://github.com/Tron-Z/rk-rootfs-build.git" "${EXTER}/cache/sources/rk35xx_packages" "branch:rk35xx_packages"
+		[[ ${BUILD_OPT} == image ]] && fetch_from_repo "${PATHLESS_ROCKCHIP_REPO}" "${EXTER}/cache/sources/rk35xx_packages" "${PATHLESS_RK35XX_PACKAGES_BRANCH}"
 
 	fi
 
@@ -489,9 +489,10 @@ if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image ]]; then
 
 	# Compile pathless-config if packed .deb does not exist or use the one from Pathless
 	if [[ ! -f ${DEB_STORAGE}/pathless-config_${REVISION}_all.deb ]]; then
-	
+
+		[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_BSP_CONFIG_REPO}" "${EXTER}/cache/sources/pathless-config" "${PATHLESS_CONFIG_BRANCH:-branch:master}"
 		[[ "${REPOSITORY_INSTALL}" != *pathless-config* ]] && compile_pathless-config
-	fi 
+	fi
 
 	# Compile pathless-zsh if packed .deb does not exist or use the one from repository
 	if [[ ! -f ${DEB_STORAGE}/pathless-zsh_${REVISION}_all.deb ]]; then

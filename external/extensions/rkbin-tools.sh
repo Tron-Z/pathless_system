@@ -1,5 +1,5 @@
 function fetch_sources_tools__rkbin_tools() {
-	fetch_from_repo "https://github.com/Tron-Z/rk-rootfs-build" "${EXTER}/cache/sources/rkbin-tools" "branch:rkbin"
+	fetch_from_repo "${PATHLESS_ROCKCHIP_REPO}" "${EXTER}/cache/sources/rkbin-tools" "${PATHLESS_RKBIN_BRANCH}"
 }
 
 function build_host_tools__install_rkbin_tools() {
