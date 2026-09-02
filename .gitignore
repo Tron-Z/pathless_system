@@ -8,6 +8,8 @@
 *.tar.gz
 *.patch
 
+!external/patch/u-boot/**/*
+!external/patch/kernel/**/*
 b.sh
 .tmp
 kernel
