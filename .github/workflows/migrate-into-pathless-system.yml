@@ -10,36 +10,78 @@ permissions:
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - src: pathless-bsp-kernel
+            src_branch: pathless-6.6-rk35xx
+            dst_branch: pathless-6.6-rk35xx
+          - src: pathless-bsp-kernel
+            src_branch: pathless-5.10-rk35xx
+            dst_branch: pathless-5.10-rk35xx
+          - src: pathless-bsp-u-boot
+            src_branch: v2017.09-rk3588
+            dst_branch: u-boot
+          - src: pathless-bsp-firmware
+            src_branch: master
+            dst_branch: firmware
+          - src: pathless-bsp-config
+            src_branch: master
+            dst_branch: config
+          - src: pathless-rockchip
+            src_branch: rkbin
+            dst_branch: rkbin
+          - src: pathless-rockchip
+            src_branch: rk35xx_packages
+            dst_branch: rk35xx_packages
+          - src: oh-my-zsh
+            src_branch: master
+            dst_branch: oh-my-zsh
+          - src: evalcache
+            src_branch: master
+            dst_branch: evalcache
+          - src: wiringOP
+            src_branch: next
+            dst_branch: wiringOP
+          - src: wiringOP-Python
+            src_branch: next
+            dst_branch: wiringOP-Python
     steps:
-      - name: Mirror legacy repos into pathless_system branches
+      - name: Mirror ${{ matrix.src }}:${{ matrix.src_branch }} → ${{ matrix.dst_branch }}
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SRC: ${{ matrix.src }}
+          SRC_BRANCH: ${{ matrix.src_branch }}
+          DST_BRANCH: ${{ matrix.dst_branch }}
         run: |
           set -euo pipefail
           OWNER=Tron-Z
           DST=pathless_system
           DST_URL="https://x-access-token:${TOKEN}@github.com/${OWNER}/${DST}.git"
+          git config --global http.postBuffer 524288000
+          git config --global http.version HTTP/1.1
+          git config --global http.lowSpeedLimit 0
+          git config --global http.lowSpeedTime 999999
 
-          mirror() {
-            local src=$1 src_branch=$2 dst_branch=$3
-            echo "==> ${src}:${src_branch} -> ${DST}:${dst_branch}"
+          echo "==> ${SRC}:${SRC_BRANCH} -> ${DST}:${DST_BRANCH}"
+          rm -rf /tmp/mrepo
+          # Prefer full history; fall back to depth 200 (matches build fetch depth).
+          if ! git clone --bare --branch "${SRC_BRANCH}" --single-branch \
+              "https://github.com/${OWNER}/${SRC}.git" /tmp/mrepo; then
+            echo "Full clone failed; retrying shallow depth=200"
             rm -rf /tmp/mrepo
-            git clone --bare --branch "${src_branch}" --single-branch \
-              "https://github.com/${OWNER}/${src}.git" /tmp/mrepo
-            git -C /tmp/mrepo push --force "${DST_URL}" "${src_branch}:${dst_branch}"
-          }
+            git clone --bare --depth 200 --branch "${SRC_BRANCH}" --single-branch \
+              "https://github.com/${OWNER}/${SRC}.git" /tmp/mrepo
+          fi
 
-          mirror pathless-bsp-kernel pathless-6.6-rk35xx pathless-6.6-rk35xx
-          mirror pathless-bsp-kernel pathless-5.10-rk35xx pathless-5.10-rk35xx
-          mirror pathless-bsp-u-boot v2017.09-rk3588 u-boot
-          mirror pathless-bsp-firmware master firmware
-          mirror pathless-bsp-config master config
-          mirror pathless-rockchip rkbin rkbin
-          mirror pathless-rockchip rk35xx_packages rk35xx_packages
-          mirror oh-my-zsh master oh-my-zsh
-          mirror evalcache master evalcache
-          mirror wiringOP next wiringOP
-          mirror wiringOP-Python next wiringOP-Python
-
-          echo "Branches now:"
-          git ls-remote --heads "${DST_URL}" | sed 's#.*refs/heads/##'
+          attempt=1
+          until git -C /tmp/mrepo push --force "${DST_URL}" "${SRC_BRANCH}:${DST_BRANCH}"; do
+            if [ "$attempt" -ge 5 ]; then
+              echo "Push failed after ${attempt} attempts"
+              exit 1
+            fi
+            echo "Push attempt ${attempt} failed; retrying in 30s..."
+            attempt=$((attempt + 1))
+            sleep 30
+          done
