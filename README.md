@@ -32,8 +32,8 @@ sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=image RELEASE=jam
 | `u-boot` | 仅编译 U-Boot |
 | `kernel` | 仅编译内核 |
 | `rootfs` | 仅编译 rootfs 及 deb 包 |
+| `pack` | **仅打包镜像**（与 `image` 打包流程相同；跳过 u-boot/内核编译，适用于分步编译后手动打包） |
 | `image` | 完整编译并打包镜像 |
-| `pack` | **仅打包镜像**（不编译，使用 `output/debs/` 已有 deb） |
 
 非交互指定目标示例：
 
@@ -43,6 +43,8 @@ sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=pack RELEASE=jamm
 ```
 
 `userpatches/config-default.conf` 中 `BUILD_OPT` 留空即可每次启动显示菜单。
+
+分步编译示例：先分别执行 `u-boot`、`kernel`、`rootfs`，产物就绪后再执行 `pack` 生成镜像（打包步骤与 `BUILD_OPT=image` 完全一致）。
 
 ## 从 Windows 拷贝到 Linux 后报错 `$'\r'`
 

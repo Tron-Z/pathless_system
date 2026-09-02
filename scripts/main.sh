@@ -181,13 +181,13 @@ if [[ -z $BUILD_OPT ]]; then
 	fi
 	options+=("kernel"	 "Kernel  — 仅编译内核")
 	options+=("rootfs"	 "Rootfs  — 仅编译 rootfs 及 deb 包")
+	options+=("pack"	 "Pack    — 仅打包镜像 (与 Image 相同流程, 跳过 u-boot/内核)")
 	options+=("image"	 "Image   — 完整编译并打包镜像")
-	options+=("pack"	 "Pack    — 仅打包镜像 (不编译, 使用已有 deb)")
 
 	if [[ $BOARDFAMILY != "cix" ]]; then
-		menustr="请选择编译目标: u-boot | kernel | rootfs | image | pack"
+		menustr="请选择编译目标: u-boot | kernel | rootfs | pack | image"
 	else
-		menustr="请选择编译目标: kernel | rootfs | image | pack"
+		menustr="请选择编译目标: kernel | rootfs | pack | image"
 	fi
 	BUILD_OPT=$(whiptail --title "${titlestr}" --backtitle "${backtitle}" --notags \
 			  --menu "${menustr}" "${TTY_Y}" "${TTY_X}" $((TTY_Y - 8))  \
@@ -488,12 +488,6 @@ fi
 
 if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image || $BUILD_OPT == pack ]]; then
 
-	if [[ $BUILD_OPT == pack ]]; then
-		display_alert "Pack-only mode" "Skip compile; use existing debs in ${DEB_STORAGE}" "info"
-	fi
-
-	if [[ $BUILD_OPT != pack ]]; then
-
 	# Compile pathless-config if packed .deb does not exist or use the one from Pathless
 	if [[ ! -f ${DEB_STORAGE}/pathless-config_${REVISION}_all.deb ]]; then
 
@@ -536,8 +530,6 @@ if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image || $BUILD_OPT == pack ]]; then
 	
 	# build additional packages
 	[[ $EXTERNAL_NEW == compile ]] && chroot_build_packages
-
-	fi
 
 	[[ $BSP_BUILD != yes ]] && debootstrap_ng
 
