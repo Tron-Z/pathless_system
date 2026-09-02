@@ -66,13 +66,32 @@ jobs:
           git config --global http.lowSpeedTime 999999
 
           echo "==> ${SRC}:${SRC_BRANCH} -> ${DST}:${DST_BRANCH}"
-          rm -rf /tmp/mrepo
-          if ! git clone --bare --branch "${SRC_BRANCH}" --single-branch \
+          # Prefer shallow: oh-my-zsh and kernels are large; depth 200 matches build fetch.
+          DEPTH=200
+          case "${SRC}" in
+            oh-my-zsh|evalcache|wiringOP|wiringOP-Python) DEPTH=1 ;;
+          esac
+
+          rm -rf /tmp/mrepo /tmp/mtree
+          if ! git clone --bare --depth "${DEPTH}" --branch "${SRC_BRANCH}" --single-branch \
               "https://github.com/${OWNER}/${SRC}.git" /tmp/mrepo; then
-            echo "Full clone failed; retrying shallow depth=200"
-            rm -rf /tmp/mrepo
-            git clone --bare --depth 200 --branch "${SRC_BRANCH}" --single-branch \
-              "https://github.com/${OWNER}/${SRC}.git" /tmp/mrepo
+            echo "Shallow bare clone failed; retrying working-tree depth=${DEPTH}"
+            rm -rf /tmp/mtree
+            git clone --depth "${DEPTH}" --branch "${SRC_BRANCH}" --single-branch \
+              "https://github.com/${OWNER}/${SRC}.git" /tmp/mtree
+            git -C /tmp/mtree remote remove origin || true
+            git -C /tmp/mtree remote add origin "${DST_URL}"
+            attempt=1
+            until git -C /tmp/mtree push --force origin "HEAD:refs/heads/${DST_BRANCH}"; do
+              if [ "$attempt" -ge 5 ]; then
+                echo "Push failed after ${attempt} attempts"
+                exit 1
+              fi
+              echo "Push attempt ${attempt} failed; retrying in 30s..."
+              attempt=$((attempt + 1))
+              sleep 30
+            done
+            exit 0
           fi
 
           attempt=1
