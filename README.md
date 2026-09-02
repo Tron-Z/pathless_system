@@ -15,12 +15,25 @@ Pathless 官方镜像构建系统，当前支持 **Rockchip RK3566**（`pathless
 | `rkbin` / `rk35xx_packages` | Rockchip 二进制与包 |
 | `oh-my-zsh` / `evalcache` / `wiringOP` / `wiringOP-Python` | 第三方 |
 
-## 快速开始
+## 快速开始（推荐：瘦身克隆）
+
+默认裸 `git clone` 会拉取**全部分支**（含超大内核历史），体积可达数 GB。请只拉 `main`：
 
 ```bash
-git clone https://github.com/Tron-Z/pathless_system.git
+# 方式一
+git clone --single-branch --branch main https://github.com/Tron-Z/pathless_system.git
 cd pathless_system
+
+# 方式二
+curl -fsSL https://raw.githubusercontent.com/Tron-Z/pathless_system/main/tools/clone-slim.sh | bash
+
 sudo ./build.sh
+```
+
+若 `build.sh` 仍不可执行（个别文件系统未保留 Git 可执行位）：
+
+```bash
+chmod +x build.sh tools/*.sh
 ```
 
 交互菜单可选：
@@ -36,6 +49,8 @@ sudo ./build.sh
 sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=image RELEASE=jammy BUILD_DESKTOP=no
 sudo ./build.sh BOARD=pathless-rk3566 BRANCH=legacy BUILD_OPT=image RELEASE=jammy BUILD_DESKTOP=no
 ```
+
+构建过程中会按需从本仓库其它分支拉取 U-Boot / 内核等，无需事先 `git clone --mirror`。
 
 ## 上游同步
 

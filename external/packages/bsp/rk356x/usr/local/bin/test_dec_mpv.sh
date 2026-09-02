@@ -1,11 +1,15 @@
 #!/bin/bash
 
 export DISPLAY=:0.0
-#export GST_DEBUG=*:5
-#export GST_DEBUG_FILE=/tmp/2.txt
+
+video=${1:-/usr/local/test.mp4}
+if [[ ! -f $video ]]; then
+	echo "missing video: $video (place a sample under /usr/local/test.mp4 or pass a path)"
+	exit 1
+fi
 
 # xv vo
 while true
 do
-	mpv --hwdec=rkmpp --vd-lavc-software-fallback=no --vo=xv /usr/local/test.mp4
+	mpv --hwdec=rkmpp --vd-lavc-software-fallback=no --vo=xv "$video"
 done
