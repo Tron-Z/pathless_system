@@ -103,7 +103,7 @@ case $UBOOT_MIRROR in
 		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/pathless-bsp-u-boot.git'
 		;;
 	*)
-		MAINLINE_UBOOT_SOURCE='https://source.denx.de/u-boot/u-boot.git'
+		MAINLINE_UBOOT_SOURCE='https://github.com/Tron-Z/pathless-bsp-u-boot.git'
 		;;
 esac
 
