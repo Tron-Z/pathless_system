@@ -1664,23 +1664,55 @@ prepare_host()
 
 
 
+# Prefer mirrors that currently serve _toolchain (tuna/bfsu often return HTTP 403).
+function armbian_release_mirrors()
+{
+	echo \
+		https://mirrors.aliyun.com/armbian-releases/ \
+		https://mirrors.ustc.edu.cn/armbian-releases/ \
+		https://mirrors.cstcloud.cn/armbian-releases/ \
+		https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/ \
+		https://mirrors.bfsu.edu.cn/armbian-releases/
+}
+
+# Pick first mirror that answers HTTP 200 for remotedir/filename.
+function pick_armbian_mirror()
+{
+	local remotedir=$1
+	local filename=$2
+	local candidates=()
+	local m
+
+	if [[ ${DOWNLOAD_MIRROR} == china || ${DOWNLOAD_MIRROR} == bfsu ]]; then
+		# shellcheck disable=SC2207
+		candidates=($(armbian_release_mirrors))
+	else
+		# shellcheck disable=SC2207
+		candidates=("${ARMBIAN_MIRROR}" $(armbian_release_mirrors))
+	fi
+
+	for m in "${candidates[@]}"; do
+		if timeout 15 curl --head --fail --silent --output /dev/null "${m}${remotedir}/${filename}"; then
+			echo "${m}"
+			return 0
+		fi
+	done
+	echo "${candidates[0]}"
+	return 1
+}
+
 function webseed ()
 {
 	# list of mirrors that host our files
 	unset text
-	# Hardcoded to EU mirrors since
-	local CCODE=$(curl -s redirect.armbian.com/geoip | jq '.continent.code' -r)
+	local CCODE
+	CCODE=$(curl -s redirect.armbian.com/geoip | jq '.continent.code' -r)
 	WEBSEED=($(curl -s https://redirect.armbian.com/mirrors | jq -r '.'${CCODE}' | .[] | values'))
 	# aria2 simply split chunks based on sources count not depending on download speed
-	# when selecting china mirrors, use only China mirror, others are very slow there
-	if [[ $DOWNLOAD_MIRROR == china ]]; then
-		WEBSEED=(
-		https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/
-		)
-	elif [[ $DOWNLOAD_MIRROR == bfsu ]]; then
-		WEBSEED=(
-		https://mirrors.bfsu.edu.cn/armbian-releases/
-		)
+	# China: use several domestic mirrors (single tuna URL is often 403 for toolchains)
+	if [[ $DOWNLOAD_MIRROR == china || $DOWNLOAD_MIRROR == bfsu ]]; then
+		# shellcheck disable=SC2207
+		WEBSEED=($(armbian_release_mirrors))
 	fi
 	if [[ ${filename} == *ky* ]] || [[ ${filename} == *arm-gnu-toolchain* ]]; then
 		WEBSEED=(
@@ -1704,45 +1736,24 @@ download_and_verify()
 	local filename=$2
 	local localdir=$SRC/toolchains
 	local dirname=${filename//.tar.xz}
-
-        if [[ $DOWNLOAD_MIRROR == china ]]; then
-			local server="https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/"
-		elif [[ $DOWNLOAD_MIRROR == bfsu ]]; then
-			local server="https://mirrors.bfsu.edu.cn/armbian-releases/"
-		else
-			local server=${ARMBIAN_MIRROR}
-        fi
+	local server
 
 	if [[ ${filename} == *ky* ]] || [[ ${filename} == *arm-gnu-toolchain* ]]; then
 		server="http://www.iplaystore.cn/upload/"
+	else
+		server=$(pick_armbian_mirror "${remotedir}" "${filename}")
 	fi
 
 	if [[ -f ${localdir}/${dirname}/.download-complete ]]; then
 		return
 	fi
 
-	# switch to china mirror if US timeouts
-	timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null
-	if [[ $? -ne 7 && $? -ne 22 && $? -ne 0 ]]; then
-		display_alert "Timeout from $server" "retrying" "info"
-		server="https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/"
-		if [[ ${filename} == *ky* ]] || [[ ${filename} == *arm-gnu-toolchain* ]]; then
-			server="http://www.iplaystore.cn/upload/"
-		fi
-
-		# switch to another china mirror if tuna timeouts
-		timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null
-		if [[ $? -ne 7 && $? -ne 22 && $? -ne 0 ]]; then
-			display_alert "Timeout from $server" "retrying" "info"
-			server="https://mirrors.bfsu.edu.cn/armbian-releases/"
-			if [[ ${filename} == *ky* ]] || [[ ${filename} == *arm-gnu-toolchain* ]]; then
-				server="http://www.iplaystore.cn/upload/"
-			fi
-		fi
+	# Skip if no reachable mirror has this file
+	if ! timeout 15 curl --head --fail --silent --output /dev/null "${server}${remotedir}/${filename}"; then
+		display_alert "Toolchain not reachable" "${server}${remotedir}/${filename}" "wrn"
+		return
 	fi
-
-	# check if file exists on remote server before running aria2 downloader
-	[[ ! `timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename}` ]] && return
+	display_alert "Toolchain mirror" "${server}" "info"
 
 	cd "${localdir}" || exit
 
@@ -1750,7 +1761,7 @@ download_and_verify()
 	if [[ -f "${EXTER}"/config/torrents/${filename}.asc ]]; then
 		local torrent="${EXTER}"/config/torrents/${filename}.torrent
 		ln -sf "${EXTER}/config/torrents/${filename}.asc" "${localdir}/${filename}.asc"
-	elif [[ ! `timeout 10 curl --head --fail --silent "${server}${remotedir}/${filename}.asc"` ]]; then
+	elif ! timeout 15 curl --head --fail --silent --output /dev/null "${server}${remotedir}/${filename}.asc"; then
 		return
 	else
 		# download control file
@@ -1785,10 +1796,12 @@ download_and_verify()
 
 	# direct download if torrent fails
 	if [[ ! -f "${localdir}/${filename}.complete" ]]; then
-		if [[ ! `timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null` ]]; then
+		if timeout 15 curl --head --fail --silent --output /dev/null "${server}${remotedir}/${filename}"; then
 			display_alert "downloading using http(s) network" "$filename"
 			aria2c --download-result=hide --rpc-save-upload-metadata=false --console-log-level=error \
-			--dht-file-path="${SRC}"/cache/.aria2/dht.dat --disable-ipv6=true --summary-interval=0 --auto-file-renaming=false --dir="${localdir}" ${server}${remotedir}/${filename} $(webseed "${remotedir}/${filename}") -o "${filename}"
+			--dht-file-path="${SRC}"/cache/.aria2/dht.dat --disable-ipv6=true --summary-interval=0 --auto-file-renaming=false --dir="${localdir}" \
+			--max-tries=5 --retry-wait=3 \
+			${server}${remotedir}/${filename} $(webseed "${remotedir}/${filename}") -o "${filename}"
 			# mark complete
 			[[ $? -eq 0 ]] && touch "${localdir}/${filename}.complete" && echo ""
 
