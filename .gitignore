@@ -13,6 +13,8 @@
 b.sh
 .tmp
 kernel
+!external/branding/kernel/
+!external/branding/kernel/**
 output
 u-boot
 toolchains
@@ -23,6 +25,7 @@ mkimage.sh
 !external/patch/kernel
 !external/config/kernel
 !external/packages/bsp/common/etc/kernel
+!external/branding/kernel/**/*
 
 external/cache/.gpg
 external/cache/hash
