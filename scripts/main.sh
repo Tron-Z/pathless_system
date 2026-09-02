@@ -206,10 +206,10 @@ if [[ ${BUILD_OPT} =~ kernel|image ]]; then
 
 	if [[ -z $KERNEL_CONFIGURE ]]; then
 
-		options+=("no" "Do not change the kernel configuration")
-		options+=("yes" "Show a kernel configuration menu before compilation")
+		options+=("no" "不修改内核配置")
+		options+=("yes" "编译前打开内核配置菜单")
 
-		menustr="Select the kernel configuration."
+		menustr="请选择是否配置内核"
 		KERNEL_CONFIGURE=$(whiptail --title "${titlestr}" --backtitle "$backtitle" --notags \
 						 --menu "${menustr}" $TTY_Y $TTY_X $((TTY_Y - 8)) \
 						 --cancel-button Exit --ok-button Select "${options[@]}" \
@@ -226,11 +226,11 @@ fi
 if [[ -z $BRANCH ]]; then
 
 	options=()
-	[[ $KERNEL_TARGET == *current* ]] && options+=("current" "Recommended. Come with best support")
-	[[ $KERNEL_TARGET == *legacy* ]] && options+=("legacy" "Old stable / Legacy")
-	[[ $KERNEL_TARGET == *next* ]] && options+=("next" "Use the latest kernel")
+	[[ $KERNEL_TARGET == *current* ]] && options+=("current"	 "Current — 推荐，支持最好 (6.6)")
+	[[ $KERNEL_TARGET == *legacy* ]] && options+=("legacy"	 "Legacy  — 旧稳定版 (5.10)")
+	[[ $KERNEL_TARGET == *next* ]] && options+=("next"	 "Next    — 最新内核")
 
-	menustr="Select the target kernel branch\nExact kernel versions depend on selected board"
+	menustr="请选择内核分支 (与 Orange Pi RK3566 对齐)"
 	# do not display selection dialog if only one kernel branch is available
 	if [[ "${#options[@]}" == 2 ]]; then
 		BRANCH="${options[0]}"
@@ -252,8 +252,8 @@ if [[ $BUILD_OPT =~ rootfs|image|pack && -z $RELEASE ]]; then
 
 	distros_options
 
-	menustr="Select the target OS release package base"
-	RELEASE=$(whiptail --title "Choose a release package base" --backtitle "${backtitle}" \
+	menustr="请选择文件系统 / 发行版版本"
+	RELEASE=$(whiptail --title "选择文件系统版本" --backtitle "${backtitle}" \
 			  --menu "${menustr}" "${TTY_Y}" "${TTY_X}" $((TTY_Y - 8))  \
 			  --cancel-button Exit --ok-button Select "${options[@]}" \
 			  3>&1 1>&2 2>&3)
@@ -272,11 +272,11 @@ if [[ $BUILD_OPT =~ rootfs|image|pack && -z $BUILD_DESKTOP ]]; then
 	set_distribution_status
 
 	options=()
-	options+=("no" "Image with console interface (server)")
-	options+=("yes" "Image with desktop environment")
+	options+=("no" "Server  — 无桌面镜像")
+	options+=("yes" "Desktop — 带桌面镜像")
 
-	menustr="Select the target image type"
-	BUILD_DESKTOP=$(whiptail --title "Choose image type" --backtitle "${backtitle}" \
+	menustr="请选择镜像类型"
+	BUILD_DESKTOP=$(whiptail --title "选择镜像类型" --backtitle "${backtitle}" \
 			  --menu "${menustr}" "${TTY_Y}" "${TTY_X}" $((TTY_Y - 8))  \
 			  --cancel-button Exit --ok-button Select "${options[@]}" \
 			  3>&1 1>&2 2>&3)
@@ -292,10 +292,10 @@ fi
 if [[ $BUILD_OPT =~ rootfs|image|pack && $BUILD_DESKTOP == no && -z $BUILD_MINIMAL ]]; then
 
 	options=()
-	options+=("no" "Standard image with console interface")
-	options+=("yes" "Minimal image with console interface")
-	menustr="Select the target image type"
-	BUILD_MINIMAL=$(whiptail --title "Choose image type" --backtitle "${backtitle}" \
+	options+=("no" "Standard — 标准镜像")
+	options+=("yes" "Minimal  — 精简镜像")
+	menustr="请选择镜像精简程度"
+	BUILD_MINIMAL=$(whiptail --title "选择镜像类型" --backtitle "${backtitle}" \
 			  --menu "${menustr}" "${TTY_Y}" "${TTY_X}" $((TTY_Y - 8))  \
 			  --cancel-button Exit --ok-button Select "${options[@]}" \
 			  3>&1 1>&2 2>&3)
