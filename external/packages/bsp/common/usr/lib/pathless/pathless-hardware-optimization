@@ -225,7 +225,7 @@ prepare_board() {
 		pathless3-lts)
 			#aplay /usr/share/sounds/alsa/audio.wav -D hw:0,0 > /dev/null 2>&1
 			rfkill unblock all
-			/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd &
+			/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd &
 			;;
 		pathless800)
 			[[ -f /sys/class/leds/caps_led/brightness ]] && chmod 666 /sys/class/leds/caps_led/brightness
@@ -242,7 +242,7 @@ prepare_board() {
 			fi
 
 			rfkill unblock all
-			/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd &
+			/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd &
 			;;
 		pathlessr1plus|pathlessr1plus-lts)
 			echo netdev > /sys/class/leds/lan_led/trigger
@@ -314,15 +314,15 @@ prepare_board() {
 
 			if [[ $BOARD == pathlesszero3plus ]]; then
 				(while [[ ! -e /proc/bluetooth/sleep/btwrite ]]; do sleep 1; done; echo 1 > /proc/bluetooth/sleep/btwrite; \
-					/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyAS1 aic) &
+					/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyAS1 aic) &
 			else
 				rfkill unblock all
-				/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd &
+				/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd &
 			fi
 			;;
 		pathless400)
 			rfkill unblock all
-			/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd &
+			/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd &
 
 			[[ -f /sys/class/leds/caps_led/brightness ]] && chmod 666 /sys/class/leds/caps_led/brightness
 			[[ -f /sys/class/leds/num_led/brightness ]] && chmod 666 /sys/class/leds/num_led/brightness
@@ -367,7 +367,7 @@ prepare_board() {
 			chown root.video /dev/video-*
 
 			rfkill unblock all
-			/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd &
+			/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd &
 			;;
 		pathless4a)
 			echo usb_host > /sys/devices/platform/soc@3000000/10.usbc0/otg_role
@@ -409,7 +409,7 @@ prepare_board() {
 				        --baudrate 1500000 --patchram /lib/firmware/BCM4345C0.hcd /dev/ttyS1 &
 			else
 				rfkill unblock all
-				(while [ ! -e /dev/ttyBT0 ]; do sleep 1; done; hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd) &
+				(while [ ! -e /dev/ttyBT0 ]; do sleep 1; done; hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd) &
 
 			fi
 			;;
@@ -464,7 +464,7 @@ prepare_board() {
 			echo 1 > /sys/class/gpio/gpio40/value
 			echo usb_host > /sys/devices/platform/soc@3000000/10.usbc0/otg_role
 			(while [[ ! -e /proc/bluetooth/sleep/btwrite ]]; do sleep 1; done; echo 1 > /proc/bluetooth/sleep/btwrite; \
-				/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyS1 aic) &
+				/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyS1 aic) &
 			#/sbin/rmmod sunxi_stmmac && /sbin/modprobe sunxi_stmmac
 			amixer -c 1 cset name='ADCL PGA Volume' 10 >/dev/null 2>&1
 			amixer -c 1 cset name='ADCR PGA Volume' 10 >/dev/null 2>&1
@@ -472,7 +472,7 @@ prepare_board() {
 		pathlesszero3w)
 			echo usb_host > /sys/devices/platform/soc@3000000/10.usbc0/otg_role
 			(while [[ ! -e /proc/bluetooth/sleep/btwrite ]]; do sleep 1; done; echo 1 > /proc/bluetooth/sleep/btwrite; \
-				/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyS1 aic) &
+				/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyS1 aic) &
 			;;
 
 	esac
@@ -603,7 +603,7 @@ prepare_board() {
 					;;
 			esac
 			;;
-		sun50i*|sunxi64*) # A64/H5 based boards like Pine64, OPi PC 2, NanoPi NEO 2
+		sun50i*|sunxi64*) # A64/H5 based boards like Pine64, Pathless PC 2, NanoPi NEO 2
 			# Send IRQs for the lower real USB port (usb2) to cpu2 and for the upper (OTG/usb1) to cpu1
 			echo 2 >/proc/irq/$(awk -F":" "/usb1/ {print \$1}" </proc/interrupts | sed 's/\ //g')/smp_affinity
 			echo 4 >/proc/irq/$(awk -F":" "/usb2/ {print \$1}" </proc/interrupts | sed 's/\ //g')/smp_affinity

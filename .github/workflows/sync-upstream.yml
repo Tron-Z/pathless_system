@@ -1,15 +1,27 @@
 name: Sync upstream sources
 
+# Rockchip blobs can be refreshed safely.
+# Kernel sync is manual-only: a force mirror would overwrite Pathless DTS/branding.
 on:
   schedule:
     - cron: '0 2 * * 1'
   workflow_dispatch:
+    inputs:
+      sync_kernel:
+        description: 'Also force-mirror upstream kernel branches (destructive to Pathless custom DTS)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
 
 jobs:
   sync-kernel:
+    if: github.event_name == 'workflow_dispatch' && inputs.sync_kernel == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,13 +32,15 @@ jobs:
           - upstream: orange-pi-5.10-rk35xx
             pathless: pathless-5.10-rk35xx
     steps:
-      - name: Mirror linux-orangepi → pathless_system/${{ matrix.pathless }}
+      - name: Mirror upstream kernel → pathless_system/${{ matrix.pathless }}
         run: |
           git clone --bare --branch "${{ matrix.upstream }}" \
             https://github.com/orangepi-xunlong/linux-orangepi.git /tmp/upstream-kernel
           cd /tmp/upstream-kernel
           git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless_system.git" \
             "refs/heads/${{ matrix.upstream }}:refs/heads/${{ matrix.pathless }}"
+      - name: Reminder
+        run: echo "Re-apply Pathless DTS and run scrub-orangepi-branding after kernel sync."
 
   sync-rockchip-rkbin:
     runs-on: ubuntu-latest

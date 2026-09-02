@@ -230,7 +230,7 @@ if [[ -z $BRANCH ]]; then
 	[[ $KERNEL_TARGET == *legacy* ]] && options+=("legacy"	 "Legacy  — 旧稳定版 (5.10)")
 	[[ $KERNEL_TARGET == *next* ]] && options+=("next"	 "Next    — 最新内核")
 
-	menustr="请选择内核分支 (与 Orange Pi RK3566 对齐)"
+	menustr="请选择内核分支 (Pathless RK3566)"
 	# do not display selection dialog if only one kernel branch is available
 	if [[ "${#options[@]}" == 2 ]]; then
 		BRANCH="${options[0]}"

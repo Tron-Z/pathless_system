@@ -58,7 +58,7 @@ PRE_INSTALL_DISTRIBUTION_SPECIFIC
 	# install distribution and board specific applications
 
 	if [[ ${RELEASE} == "raspi" ]]; then
-		install_opi_specific
+		install_pathless_specific
 	else
 		install_distribution_specific
 		install_common
@@ -509,9 +509,9 @@ prepare_partitions() {
 	UEFISIZE=${UEFISIZE:-0}
 	BIOSSIZE=${BIOSSIZE:-0}
 	UEFI_MOUNT_POINT=${UEFI_MOUNT_POINT:-/boot/efi}
-	UEFI_FS_LABEL="${UEFI_FS_LABEL:-opi_efi}"
-	ROOT_FS_LABEL="${ROOT_FS_LABEL:-opi_root}"
-	BOOT_FS_LABEL="${BOOT_FS_LABEL:-opi_boot}"
+	UEFI_FS_LABEL="${UEFI_FS_LABEL:-pl_efi}"
+	ROOT_FS_LABEL="${ROOT_FS_LABEL:-pl_root}"
+	BOOT_FS_LABEL="${BOOT_FS_LABEL:-pl_boot}"
 
 	call_extension_method "pre_prepare_partitions" "prepare_partitions_custom" << 'PRE_PREPARE_PARTITIONS'
 *allow custom options for mkfs*

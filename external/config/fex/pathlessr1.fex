@@ -1,6 +1,6 @@
 [product]
 version = "100"
-machine = "Xunlong Pathless R1"
+machine = "Pathless R1"
 
 [platform]
 debug_mode = 1

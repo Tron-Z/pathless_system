@@ -7,7 +7,7 @@
 
 [product]
 version = "100"
-machine = "Xunlong Pathless Plus / Plus 2"
+machine = "Pathless Plus / Plus 2"
 
 ;---------------------------------------------------------------------------------------------------------
 ; eraseflag - 1 erase data partition, 0 - do not erase data partition

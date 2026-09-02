@@ -1,0 +1,57 @@
+name: Scrub orangepi branding from BSP branches
+
+# Remove leftover *orangepi* board files from Pathless BSP/kernel branches.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrub:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch:
+          - pathless-bsp-u-boot
+          - pathless-6.6-rk35xx
+          - pathless-5.10-rk35xx
+    steps:
+      - name: Scrub ${{ matrix.branch }}
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ matrix.branch }}
+        run: |
+          set -euo pipefail
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          URL="https://x-access-token:${TOKEN}@github.com/Tron-Z/pathless_system.git"
+
+          rm -rf /tmp/scrub
+          git clone --depth 1 --branch "${BRANCH}" "${URL}" /tmp/scrub
+          cd /tmp/scrub
+
+          mapfile -t FILES < <(git ls-files | grep -iE 'orangepi|orange-pi|xunlong' || true)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No orangepi/xunlong paths on ${BRANCH}"
+            exit 0
+          fi
+
+          echo "Removing ${#FILES[@]} paths:"
+          printf '  %s\n' "${FILES[@]}"
+          git rm -f --ignore-unmatch -- "${FILES[@]}"
+
+          # Drop Makefile / Kconfig lines that referenced removed DTS names.
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            sed -i -E '/orangepi|orange-pi|xunlong|OrangePi|ORANGEPI/Id' "$f" || true
+          done < <(git ls-files | grep -E '(Makefile|Kconfig|configs/.*defconfig)$' || true)
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "brand: remove orangepi/xunlong leftovers from ${BRANCH}"
+          git push origin "HEAD:refs/heads/${BRANCH}"

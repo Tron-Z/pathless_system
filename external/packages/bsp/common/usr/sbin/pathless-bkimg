@@ -149,14 +149,14 @@ rootdevice="${LOOP}p${rootpart}"
 
 display_alert "Creating rootfs" "$ROOTFS_TYPE on $rootdevice"
 
-mkfs.ext4 -q -m 2 -O '^64bit,^metadata_csum' -L opi_root $rootdevice
+mkfs.ext4 -q -m 2 -O '^64bit,^metadata_csum' -L pl_root $rootdevice
 
 [[ $ROOTFS_TYPE == ext4 ]] && tune2fs -o journal_data_writeback $rootdevice > /dev/null
 
 if [[ $USE_OVERLAYFS -eq 1 ]]; then
 	overlaydevice="${LOOP}p${overlaypart}"
 	display_alert "Creating overlayfs" "$OVERLAYFS_TYPE on $overlaydevice"
-	mkfs.ext4 -q -m 0 -O '^64bit,^metadata_csum' -L opi_overlay $overlaydevice
+	mkfs.ext4 -q -m 0 -O '^64bit,^metadata_csum' -L pl_overlay $overlaydevice
 fi
 
 TempDir=$(mktemp -d /mnt/${0##*/}.XXXXXX || exit 2)

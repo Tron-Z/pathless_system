@@ -938,7 +938,7 @@ log ()
 	date +"[%T] $*"
 }
 
-install_opi_specific()
+install_pathless_specific()
 {
 	cd $SRC
 
@@ -1039,7 +1039,7 @@ install_opi_specific()
 	install -d "${SDCARD}/etc/initramfs/post-update.d/"
 	install -m 755 "${EXTER}/packages/bsp/common/etc/initramfs/post-update.d/99-uboot" "${SDCARD}/etc/initramfs/post-update.d/"
 
-	install -m 755 "${EXTER}/packages/raspi/pathless/common/files/hciattach_opi" "${SDCARD}/usr/bin/"
+	install -m 755 "${EXTER}/packages/raspi/pathless/common/files/hciattach_pathless" "${SDCARD}/usr/bin/"
 	install -m 755 "${EXTER}/packages/raspi/pathless/common/files/brcm_patchram_plus" "${SDCARD}/usr/bin/"
 
 	install -d "${SDCARD}/usr/lib/pathless/"

@@ -1,29 +1,19 @@
 # Pathless Build
 
-Pathless 官方镜像构建系统，当前支持 **Rockchip RK3566** 平台。
+Pathless 官方镜像构建系统，当前支持 **Rockchip RK3566**（`pathless-rk3566`）。
 
 ## 单一仓库（GitHub: [Tron-Z/pathless_system](https://github.com/Tron-Z/pathless_system)）
 
-所有构建脚本与依赖源码统一放在本仓库的不同分支：
+构建脚本与依赖源码均在本仓库不同分支：
 
 | 分支 | 内容 |
 |:--|:--|
 | `main` | 构建工程 |
+| `pathless-bsp-u-boot` | U-Boot |
+| `pathless-bsp-firmware` / `pathless-bsp-config` | 板级固件与配置 |
 | `pathless-6.6-rk35xx` / `pathless-5.10-rk35xx` | 内核 |
-| `u-boot` | U-Boot |
-| `firmware` / `config` | 板级固件与配置 |
 | `rkbin` / `rk35xx_packages` | Rockchip 二进制与包 |
 | `oh-my-zsh` / `evalcache` / `wiringOP` / `wiringOP-Python` | 第三方 |
-
-从旧拆分仓镜像进本仓（可重复执行）：
-
-```bash
-# 本地（可配代理）
-export GIT_PROXY_PREFIX=https://gh-proxy.com/https://github.com
-bash tools/migrate-unified-repos.sh
-
-# 或在 GitHub Actions 运行：Migrate into pathless_system
-```
 
 ## 快速开始
 
@@ -46,6 +36,10 @@ sudo ./build.sh
 sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=image RELEASE=jammy BUILD_DESKTOP=no
 sudo ./build.sh BOARD=pathless-rk3566 BRANCH=legacy BUILD_OPT=image RELEASE=jammy BUILD_DESKTOP=no
 ```
+
+## 上游同步
+
+GitHub Actions `Sync upstream sources` 可按计划从上游内核 / Rockchip 包镜像到本仓库对应分支（产品命名仍为 Pathless）。
 
 ## 许可证
 

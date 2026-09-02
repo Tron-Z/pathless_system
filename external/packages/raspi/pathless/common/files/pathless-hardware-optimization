@@ -54,7 +54,7 @@ prepare_board() {
 
 			if [[ $BOARD == pathless-rk3566 ]]; then
 				rfkill unblock all
-				/usr/bin/hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd &
+				/usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd &
 			elif [[ $BOARD == pathless-rk3566-cm ]]; then
 				rfkill unblock all
 				brcm_patchram_plus --bd_addr_rand --enable_hci --no2bytes --use_baudrate_for_download --tosleep 200000 \
@@ -116,7 +116,7 @@ prepare_board() {
 		        fi
 
 		        rfkill unblock all
-		        /usr/bin/hciattach_opi -n -s 1500000 /dev/ttyBT0 sprd &
+		        /usr/bin/hciattach_pathless -n -s 1500000 /dev/ttyBT0 sprd &
 		        ;;
 	esac
 }
