@@ -53,8 +53,17 @@ Pathless RK3566 使用 **`rk3566-pathless-3b.dts`**，产物为 **`rk3566-pathle
 更新源码后若编译仍用旧树，请强制刷新：
 
 ```bash
-rm -rf u-boot kernel external/cache/sources/pathless-firmware-git
+bash tools/refresh-bsp-sources.sh
 sudo ./build.sh BUILD_OPT=u-boot BOARD=pathless-rk3566 BRANCH=current
+```
+
+## 保持与 GitHub 同步
+
+```bash
+git fetch origin
+git reset --hard origin/main
+bash tools/normalize-eol.sh   # 从 Windows 拷贝后需要
+bash tools/refresh-bsp-sources.sh
 ```
 
 查看详细错误：`tail -80 output/debug/compilation.log`
