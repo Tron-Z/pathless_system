@@ -1,0 +1,29 @@
+name: Sync kernel upstream
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-kernel:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - upstream: orange-pi-6.6-rk35xx
+            pathless: pathless-6.6-rk35xx
+          - upstream: orange-pi-5.10-rk35xx
+            pathless: pathless-5.10-rk35xx
+    steps:
+      - name: Mirror linux-orangepi/${{ matrix.upstream }} → pathless-bsp-kernel/${{ matrix.pathless }}
+        run: |
+          git clone --bare --branch "${{ matrix.upstream }}" \
+            https://github.com/orangepi-xunlong/linux-orangepi.git /tmp/upstream-kernel
+          cd /tmp/upstream-kernel
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless-bsp-kernel.git" \
+            "refs/heads/${{ matrix.upstream }}:refs/heads/${{ matrix.pathless }}"
