@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  workflows: write
 
 jobs:
   migrate:
@@ -60,42 +61,31 @@ jobs:
           OWNER=Tron-Z
           DST=pathless_system
           DST_URL="https://x-access-token:${TOKEN}@github.com/${OWNER}/${DST}.git"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
           git config --global http.postBuffer 524288000
           git config --global http.version HTTP/1.1
-          git config --global http.lowSpeedLimit 0
-          git config --global http.lowSpeedTime 999999
 
           echo "==> ${SRC}:${SRC_BRANCH} -> ${DST}:${DST_BRANCH}"
-          # Prefer shallow: oh-my-zsh and kernels are large; depth 200 matches build fetch.
-          DEPTH=200
-          case "${SRC}" in
-            oh-my-zsh|evalcache|wiringOP|wiringOP-Python) DEPTH=1 ;;
-          esac
+          # depth=1 keeps packs self-contained (shallow depth>1 often fails remote unpack).
+          DEPTH=1
+          rm -rf /tmp/mtree
+          git clone --depth "${DEPTH}" --branch "${SRC_BRANCH}" --single-branch \
+            "https://github.com/${OWNER}/${SRC}.git" /tmp/mtree
+          cd /tmp/mtree
 
-          rm -rf /tmp/mrepo /tmp/mtree
-          if ! git clone --bare --depth "${DEPTH}" --branch "${SRC_BRANCH}" --single-branch \
-              "https://github.com/${OWNER}/${SRC}.git" /tmp/mrepo; then
-            echo "Shallow bare clone failed; retrying working-tree depth=${DEPTH}"
-            rm -rf /tmp/mtree
-            git clone --depth "${DEPTH}" --branch "${SRC_BRANCH}" --single-branch \
-              "https://github.com/${OWNER}/${SRC}.git" /tmp/mtree
-            git -C /tmp/mtree remote remove origin || true
-            git -C /tmp/mtree remote add origin "${DST_URL}"
-            attempt=1
-            until git -C /tmp/mtree push --force origin "HEAD:refs/heads/${DST_BRANCH}"; do
-              if [ "$attempt" -ge 5 ]; then
-                echo "Push failed after ${attempt} attempts"
-                exit 1
-              fi
-              echo "Push attempt ${attempt} failed; retrying in 30s..."
-              attempt=$((attempt + 1))
-              sleep 30
-            done
-            exit 0
+          # Avoid GITHUB_TOKEN workflow-file rejection when mirroring third-party trees.
+          if [ -d .github/workflows ]; then
+            rm -rf .github/workflows
+            git add -A
+            git commit -m "pathless mirror: drop nested workflows" || true
           fi
 
+          git remote remove origin || true
+          git remote add origin "${DST_URL}"
+
           attempt=1
-          until git -C /tmp/mrepo push --force "${DST_URL}" "${SRC_BRANCH}:${DST_BRANCH}"; do
+          until git push --force origin "HEAD:refs/heads/${DST_BRANCH}"; do
             if [ "$attempt" -ge 5 ]; then
               echo "Push failed after ${attempt} attempts"
               exit 1
@@ -118,7 +108,6 @@ jobs:
           DST_URL="https://x-access-token:${TOKEN}@github.com/Tron-Z/pathless_system.git"
           git clone --bare "$DST_URL" /tmp/ps
           cd /tmp/ps
-          # Only delete short aliases after correctly-named branches exist.
           for pair in "u-boot:pathless-bsp-u-boot" "firmware:pathless-bsp-firmware" "config:pathless-bsp-config"; do
             wrong="${pair%%:*}"
             right="${pair##*:}"
@@ -127,7 +116,7 @@ jobs:
               echo "Deleting obsolete branch ${wrong} (kept ${right})"
               git push origin --delete "${wrong}" || true
             else
-              echo "Skip delete ${wrong} (right=${right} present?)"
+              echo "Skip delete ${wrong}"
               git show-ref | grep -E "refs/heads/(${wrong}|${right})$" || true
             fi
           done
