@@ -64,6 +64,7 @@ git fetch origin
 git reset --hard origin/main
 bash tools/normalize-eol.sh   # 从 Windows 拷贝后需要
 bash tools/refresh-bsp-sources.sh
+bash tools/verify-rk3566-bsp.sh
 ```
 
 查看详细错误：`tail -80 output/debug/compilation.log`
