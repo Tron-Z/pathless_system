@@ -320,6 +320,9 @@ improved_git()
 	local retries=3
 	local delay=10
 	local count=1
+	# Never hang waiting for interactive credentials during builds
+	export GIT_TERMINAL_PROMPT=0
+	export GIT_ASKPASS=/bin/true
 	while [ $count -lt $retries ]; do
 		$realgit "$@"
 		if [[ $? -eq 0 || -f .git/index.lock ]]; then

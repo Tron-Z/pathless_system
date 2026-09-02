@@ -12,6 +12,8 @@ Pathless 官方镜像构建系统，当前支持 **Rockchip RK3566** 平台。
 | [pathless-bsp-u-boot](https://github.com/Tron-Z/pathless-bsp-u-boot) | Pathless U-Boot | U-Boot + `pathless-rk3566_defconfig` |
 | [pathless-bsp-firmware](https://github.com/Tron-Z/pathless-bsp-firmware) | Pathless firmware | 板级 firmware |
 | [pathless-bsp-config](https://github.com/Tron-Z/pathless-bsp-config) | Pathless 系统配置 | pathless-config 工具 |
+| [oh-my-zsh](https://github.com/Tron-Z/oh-my-zsh) / [evalcache](https://github.com/Tron-Z/evalcache) | 上游 fork | pathless-zsh 依赖 |
+| [wiringOP](https://github.com/Tron-Z/wiringOP) / [wiringOP-Python](https://github.com/Tron-Z/wiringOP-Python) | 上游 fork | GPIO 库 |
 
 ## 快速开始
 
