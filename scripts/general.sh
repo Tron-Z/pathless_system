@@ -1926,13 +1926,14 @@ install_wiringop()
 
 	if [[ ${IGNORE_UPDATES} != yes ]]; then
 
-		fetch_from_repo "${PATHLESS_3RDPARTY_REPO}" "${EXTER}/cache/sources/wiringOP" "${PATHLESS_WIRINGOP_BRANCH:-branch:wiringOP}" "yes"
-		fetch_from_repo "${PATHLESS_3RDPARTY_REPO}" "${EXTER}/cache/sources/wiringOP-Python" "${PATHLESS_WIRINGOP_PYTHON_BRANCH:-branch:wiringOP-Python}" "yes"
+		local url=$(get_pathless_url)
+		fetch_from_repo "${url}/wiringOP.git" "${EXTER}/cache/sources/wiringOP" "branch:next" "yes"
+		fetch_from_repo "${url}/wiringOP-Python.git" "${EXTER}/cache/sources/wiringOP-Python" "branch:next" "yes"
 
 	fi
 
-	cp ${EXTER}/cache/sources/wiringOP/wiringOP ${SDCARD}/usr/src/wiringOP -rfa
-	cp ${EXTER}/cache/sources/wiringOP-Python/wiringOP-Python ${SDCARD}/usr/src/wiringOP-Python -rfa
+	cp ${EXTER}/cache/sources/wiringOP/next ${SDCARD}/usr/src/wiringOP -rfa
+	cp ${EXTER}/cache/sources/wiringOP-Python/next ${SDCARD}/usr/src/wiringOP-Python -rfa
 
 	rm $SDCARD/root/*.deb >/dev/null 2>&1
 }

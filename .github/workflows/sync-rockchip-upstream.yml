@@ -12,21 +12,25 @@ jobs:
   sync-rockchip-rkbin:
     runs-on: ubuntu-latest
     steps:
-      - name: Mirror rockchip-linux/rkbin → pathless-bsp/rkbin
+      - name: Mirror rockchip-linux/rkbin
         run: |
           git clone --bare https://github.com/rockchip-linux/rkbin.git /tmp/upstream-rkbin
           cd /tmp/upstream-rkbin
           DEFAULT=$(git symbolic-ref HEAD 2>/dev/null | sed 's#refs/heads/##' || echo master)
-          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless-bsp.git" \
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless-rockchip.git" \
             "refs/heads/${DEFAULT}:refs/heads/rkbin"
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless-bsp.git" \
+            "refs/heads/${DEFAULT}:refs/heads/rkbin" || true
 
   sync-rockchip-packages:
     runs-on: ubuntu-latest
     steps:
-      - name: Mirror rk-rootfs-build/rk35xx_packages → pathless-bsp/rk35xx_packages
+      - name: Mirror rk35xx_packages
         run: |
           git clone --bare --branch rk35xx_packages \
             https://github.com/orangepi-xunlong/rk-rootfs-build.git /tmp/upstream-pkg
           cd /tmp/upstream-pkg
-          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless-bsp.git" \
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless-rockchip.git" \
             refs/heads/rk35xx_packages:refs/heads/rk35xx_packages
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Tron-Z/pathless-bsp.git" \
+            refs/heads/rk35xx_packages:refs/heads/rk35xx_packages || true

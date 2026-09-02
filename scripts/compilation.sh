@@ -665,8 +665,8 @@ compile_pathless-zsh()
 	pathless_zsh_dir=pathless-zsh_${REVISION}_all
 	display_alert "Building deb" "pathless-zsh" "info"
 
-	[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_3RDPARTY_REPO}" "${EXTER}/cache/sources/oh-my-zsh" "${PATHLESS_OHMYZSH_BRANCH:-branch:oh-my-zsh}"
-	[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_3RDPARTY_REPO}" "${EXTER}/cache/sources/evalcache" "${PATHLESS_EVALCACHE_BRANCH:-branch:evalcache}"
+	[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_OHMYZSH_REPO:-${GIT_SERVER}/oh-my-zsh.git}" "${EXTER}/cache/sources/oh-my-zsh" "${PATHLESS_OHMYZSH_BRANCH:-branch:master}"
+	[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_EVALCACHE_REPO:-${GIT_SERVER}/evalcache.git}" "${EXTER}/cache/sources/evalcache" "${PATHLESS_EVALCACHE_BRANCH:-branch:master}"
 
 	mkdir -p "${tmp_dir}/${pathless_zsh_dir}"/{DEBIAN,etc/skel/,etc/oh-my-zsh/,/etc/skel/.oh-my-zsh/cache}
 
