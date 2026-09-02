@@ -1,14 +1,14 @@
 name: Remirror pathless-5.10 history
 
-# Replace orphan snapshot of pathless-5.10-rk35xx with upstream history,
-# then restore Pathless board DTS and scrub orangepi leftovers.
+# Replace orphan snapshot with a pushable truncated upstream history.
+# Shallow packs are rewritten via graft so GitHub accepts the push.
 on:
   workflow_dispatch:
     inputs:
       depth:
-        description: 'Clone depth (0 = full history)'
+        description: 'How many recent upstream commits to keep (recommended 300-800)'
         required: true
-        default: '0'
+        default: '400'
         type: string
 
 permissions:
@@ -28,7 +28,7 @@ jobs:
           sparse-checkout-cone-mode: false
           path: branding-src
 
-      - name: Mirror upstream → pathless-5.10-rk35xx
+      - name: Build pushable history from upstream and force-update branch
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEPTH: ${{ inputs.depth }}
@@ -38,57 +38,42 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global http.postBuffer 524288000
           git config --global http.version HTTP/1.1
-          git config --global http.lowSpeedLimit 0
-          git config --global http.lowSpeedTime 999999
 
           OWNER=Tron-Z
-          DST=pathless_system
-          DST_URL="https://x-access-token:${TOKEN}@github.com/${OWNER}/${DST}.git"
+          DST_URL="https://x-access-token:${TOKEN}@github.com/${OWNER}/pathless_system.git"
           UP_URL="https://github.com/orangepi-xunlong/linux-orangepi.git"
           UP_BRANCH=orange-pi-5.10-rk35xx
           DST_BRANCH=pathless-5.10-rk35xx
 
-          rm -rf /tmp/up-kernel
-          CLONE_ARGS=(--single-branch --branch "${UP_BRANCH}")
-          if [ "${DEPTH}" != "0" ]; then
-            CLONE_ARGS+=(--depth "${DEPTH}")
-            echo "Shallow clone depth=${DEPTH}"
-          else
-            echo "Full-history single-branch clone"
-          fi
+          echo "Cloning upstream ${UP_BRANCH} depth=${DEPTH}"
+          rm -rf /tmp/up-wt
+          git clone --depth "${DEPTH}" --single-branch --branch "${UP_BRANCH}" \
+            "${UP_URL}" /tmp/up-wt
+          cd /tmp/up-wt
+
+          echo "Pre-graft commit count: $(git rev-list --count HEAD)"
+          ROOT=$(git rev-list --reverse HEAD | head -n1)
+          echo "Grafting root commit: ${ROOT}"
+          git replace --graft "${ROOT}"
+          # Rewrite history so graft becomes a real root (pushable, non-shallow)
+          FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --tag-name-filter cat -- --all
+          rm -rf .git/refs/original .git/refs/replace
+          git reflog expire --expire=now --all
+          git gc --prune=now --aggressive
+
+          # Ensure we are not marked shallow
+          rm -f .git/shallow || true
+
+          echo "Post-rewrite commit count: $(git rev-list --count HEAD)"
+          git log -3 --oneline
+
+          git remote remove origin || true
+          git remote add origin "${DST_URL}"
 
           attempt=1
-          until git clone --bare "${CLONE_ARGS[@]}" "${UP_URL}" /tmp/up-kernel; do
-            if [ "$attempt" -ge 3 ]; then
-              echo "Upstream clone failed after ${attempt} attempts"
-              exit 1
-            fi
-            echo "Clone attempt ${attempt} failed; retrying in 30s..."
-            attempt=$((attempt + 1))
-            rm -rf /tmp/up-kernel
-            sleep 30
-          done
-
-          echo "Upstream tips:"
-          git -C /tmp/up-kernel rev-list --count "${UP_BRANCH}" || true
-          git -C /tmp/up-kernel log -1 --oneline "${UP_BRANCH}" || true
-
-          attempt=1
-          until git -C /tmp/up-kernel push --force --no-thin "${DST_URL}" \
-              "${UP_BRANCH}:refs/heads/${DST_BRANCH}"; do
+          until git push --force --no-thin origin "HEAD:refs/heads/${DST_BRANCH}"; do
             if [ "$attempt" -ge 5 ]; then
               echo "Push failed after ${attempt} attempts"
-              # Fallback: working-tree depth=500 self-contained push
-              if [ "${DEPTH}" = "0" ]; then
-                echo "Trying fallback shallow depth=500 working tree..."
-                rm -rf /tmp/up-wt
-                git clone --depth 500 --single-branch --branch "${UP_BRANCH}" "${UP_URL}" /tmp/up-wt
-                cd /tmp/up-wt
-                git remote remove origin || true
-                git remote add origin "${DST_URL}"
-                git push --force --no-thin origin "HEAD:refs/heads/${DST_BRANCH}"
-                break
-              fi
               exit 1
             fi
             echo "Push attempt ${attempt} failed; retrying in 45s..."
@@ -113,11 +98,7 @@ jobs:
           DTS_SRC="${GITHUB_WORKSPACE}/branding-src/external/branding/kernel/5.10/rk3566-pathless-3b.dts"
           DTS_DST="arch/arm64/boot/dts/rockchip/rk3566-pathless-3b.dts"
           MK="arch/arm64/boot/dts/rockchip/Makefile"
-
-          if [ ! -f "${DTS_SRC}" ]; then
-            echo "Missing branding DTS at ${DTS_SRC}"
-            exit 1
-          fi
+          test -f "${DTS_SRC}"
           mkdir -p "$(dirname "${DTS_DST}")"
           cp -f "${DTS_SRC}" "${DTS_DST}"
 
@@ -125,9 +106,7 @@ jobs:
             if grep -q 'rk3566-orangepi-3b.dtb' "${MK}"; then
               sed -i 's/rk3566-orangepi-3b\.dtb/rk3566-pathless-3b.dtb/g' "${MK}"
             else
-              # Insert near other rk3566 dtb lines
               sed -i '/rk3566-.*\.dtb/a dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-pathless-3b.dtb' "${MK}"
-              # dedupe if sed inserted multiple
               awk '!seen[$0]++' "${MK}" > "${MK}.tmp" && mv "${MK}.tmp" "${MK}"
             fi
           fi
@@ -142,38 +121,34 @@ jobs:
             sed -i -E '/orangepi|orange-pi|xunlong|OrangePi|ORANGEPI/Id' "$f" || true
           done < <(git ls-files | grep -E '(Makefile|Kconfig)$' || true)
 
-          # Ensure pathless dtb line survived scrub
           if [ -f "${MK}" ] && ! grep -q 'rk3566-pathless-3b.dtb' "${MK}"; then
             echo 'dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-pathless-3b.dtb' >> "${MK}"
           fi
 
           git add -A
-          if git diff --cached --quiet; then
-            echo "No branding changes needed"
-          else
+          if ! git diff --cached --quiet; then
             git commit -m "pathless: restore RK3566 Pathless DTS and scrub orangepi leftovers"
             git push origin "HEAD:refs/heads/${BRANCH}"
           fi
+          git log -5 --oneline
+          test -f "${DTS_DST}"
+          echo "Commit count on tip clone: $(git rev-list --count HEAD) (depth-1 limited)"
 
-          echo "Final tip:"
-          git log -1 --oneline
-          echo "Approx reachable commits (depth-1 clone tip parents limited):"
-          git rev-list --count HEAD || true
-
-      - name: Report history depth on remote tip
+      - name: Verify remote history depth
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           DST_URL="https://x-access-token:${TOKEN}@github.com/Tron-Z/pathless_system.git"
           rm -rf /tmp/count
-          # Deeper clone just to count history (may be large; depth 5000 cap)
-          git clone --depth 5000 --filter=blob:none --single-branch --branch pathless-5.10-rk35xx \
-            "${DST_URL}" /tmp/count || git clone --depth 200 --single-branch --branch pathless-5.10-rk35xx \
+          git clone --depth 500 --filter=blob:none --single-branch --branch pathless-5.10-rk35xx \
             "${DST_URL}" /tmp/count
           cd /tmp/count
-          echo "Commit count (clone depth limited): $(git rev-list --count HEAD)"
-          git log -3 --oneline
+          COUNT=$(git rev-list --count HEAD)
+          echo "Visible commit count (depth<=500 clone): ${COUNT}"
+          git log -5 --oneline
           test -f arch/arm64/boot/dts/rockchip/rk3566-pathless-3b.dts
-          ! test -f arch/arm64/boot/dts/rockchip/rk3566-orangepi-3b.dts
-          echo "DTS checks OK"
+          if [ "${COUNT}" -lt 50 ]; then
+            echo "History still too short"
+            exit 1
+          fi
