@@ -1,0 +1,20 @@
+# Pathless ZRAM configuration service
+# Create 1 + number of cores compressed block devices
+# This service may block the boot process for up to 30 sec
+
+[Unit]
+Description=Pathless ZRAM config
+DefaultDependencies=no
+After=local-fs.target
+Before=pathless-ramlog.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/pathless/pathless-zram-config start
+ExecStop=/usr/lib/pathless/pathless-zram-config stop
+RemainAfterExit=yes
+TimeoutStartSec=30sec
+
+[Install]
+WantedBy=sysinit.target

@@ -1,0 +1,23 @@
+# Pathless ramlog service
+# Stores logs in (compressed) memory
+# This service may block the boot process for up to 30 sec
+
+[Unit]
+Description=Pathless memory supported logging
+DefaultDependencies=no
+Before=rsyslog.service sysinit.target syslog.target
+After=pathless-zram-config.service
+Conflicts=shutdown.target
+RequiresMountsFor=/var/log /var/log.hdd
+IgnoreOnIsolate=yes
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/pathless/pathless-ramlog start
+ExecStop=/usr/lib/pathless/pathless-ramlog stop
+ExecReload=/usr/lib/pathless/pathless-ramlog write
+RemainAfterExit=yes
+TimeoutStartSec=30sec
+
+[Install]
+WantedBy=sysinit.target

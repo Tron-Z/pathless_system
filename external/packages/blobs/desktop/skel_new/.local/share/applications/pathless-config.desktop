@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=pathless-config
+Comment=Basic system settings
+Exec=sudo pathless-config
+Icon=/usr/share/icons/pathless/opi_config128x128.png
+Path=/usr/share/icons/pathless/
+Terminal=true
+StartupNotify=false
+Categories=GTK;GNOME;Settings;HardwareSettings;
