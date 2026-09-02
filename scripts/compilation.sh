@@ -110,21 +110,6 @@ compile_atf()
 	[[ -f license.md ]] && cp license.md "${atftempdir}"/
 }
 
-pathless_prepare_uboot_dts()
-{
-	# pathless-rk3566_defconfig expects rk3566-pathless-3b.dts; upstream tree ships orangepi name only
-	[[ $BOARD != pathless-rk3566 ]] && return 0
-
-	local uboot_tree=$1
-	local src="${uboot_tree}/arch/arm/dts/rk3566-orangepi-3b.dts"
-	local dst="${uboot_tree}/arch/arm/dts/rk3566-pathless-3b.dts"
-
-	[[ -f $src ]] || exit_with_error "Missing U-Boot DTS" "rk3566-orangepi-3b.dts"
-
-	cp "$src" "$dst"
-	sed -i 's/Orange Pi 3B/Pathless RK3566/g; s/rk3566-orangepi-3b/rk3566-pathless-3b/g' "$dst"
-}
-
 compile_uboot()
 {
 
@@ -202,8 +187,6 @@ compile_uboot()
 		fi
 
 		advanced_patch "u-boot" "$BOOTPATCHDIR" "$BOARD" "$target_patchdir" "$BRANCH" "${LINUXFAMILY}-${BOARD}-${BRANCH}"
-
-		pathless_prepare_uboot_dts "${ubootdir}"
 
 		# create patch for manual source changes
 		[[ $CREATE_PATCHES == yes ]] && userpatch_create "u-boot"

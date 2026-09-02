@@ -46,14 +46,14 @@ sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=pack RELEASE=jamm
 
 分步编译示例：先分别执行 `u-boot`、`kernel`、`rootfs`，产物就绪后再执行 `pack` 生成镜像（打包步骤与 `BUILD_OPT=image` 完全一致）。
 
-## U-Boot 编译失败 `U-boot compilation failed`
+## U-Boot / 内核设备树
 
-`pathless-rk3566_defconfig` 需要 `arch/arm/dts/rk3566-pathless-3b.dts`，U-Boot 源码树里默认只有 `rk3566-orangepi-3b.dts`。构建脚本会在编译前自动生成 pathless DTS。
+Pathless RK3566 使用 **`rk3566-pathless-3b.dts`**，产物为 **`rk3566-pathless-3b.dtb`**（源码在 `pathless-bsp-u-boot` / `pathless-bsp-kernel` 仓库，无 orangepi 命名）。
 
-**清理后重编：**
+更新源码后若编译仍用旧树，请强制刷新：
 
 ```bash
-rm -f u-boot/*/arch/arm/dts/rk3566-pathless-3b.dtb
+rm -rf u-boot kernel external/cache/sources/pathless-firmware-git
 sudo ./build.sh BUILD_OPT=u-boot BOARD=pathless-rk3566 BRANCH=current
 ```
 
