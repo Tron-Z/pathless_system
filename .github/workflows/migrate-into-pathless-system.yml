@@ -1,6 +1,7 @@
 name: Migrate into pathless_system
 
-# One-shot (or re-runnable) mirror of legacy split repos into pathless_system branches.
+# Mirror legacy split repos into pathless_system. Destination branch = old repo name
+# (kernel/rockchip keep their existing multi-branch names).
 on:
   workflow_dispatch:
 
@@ -22,13 +23,13 @@ jobs:
             dst_branch: pathless-5.10-rk35xx
           - src: pathless-bsp-u-boot
             src_branch: v2017.09-rk3588
-            dst_branch: u-boot
+            dst_branch: pathless-bsp-u-boot
           - src: pathless-bsp-firmware
             src_branch: master
-            dst_branch: firmware
+            dst_branch: pathless-bsp-firmware
           - src: pathless-bsp-config
             src_branch: master
-            dst_branch: config
+            dst_branch: pathless-bsp-config
           - src: pathless-rockchip
             src_branch: rkbin
             dst_branch: rkbin
@@ -66,7 +67,6 @@ jobs:
 
           echo "==> ${SRC}:${SRC_BRANCH} -> ${DST}:${DST_BRANCH}"
           rm -rf /tmp/mrepo
-          # Prefer full history; fall back to depth 200 (matches build fetch depth).
           if ! git clone --bare --branch "${SRC_BRANCH}" --single-branch \
               "https://github.com/${OWNER}/${SRC}.git" /tmp/mrepo; then
             echo "Full clone failed; retrying shallow depth=200"
@@ -84,4 +84,31 @@ jobs:
             echo "Push attempt ${attempt} failed; retrying in 30s..."
             attempt=$((attempt + 1))
             sleep 30
+          done
+
+  cleanup-wrong-short-names:
+    needs: migrate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete obsolete short branch names if correct ones exist
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          DST_URL="https://x-access-token:${TOKEN}@github.com/Tron-Z/pathless_system.git"
+          git clone --bare "$DST_URL" /tmp/ps
+          cd /tmp/ps
+          # Only delete short aliases after correctly-named branches exist.
+          for pair in "u-boot:pathless-bsp-u-boot" "firmware:pathless-bsp-firmware" "config:pathless-bsp-config"; do
+            wrong="${pair%%:*}"
+            right="${pair##*:}"
+            if git show-ref --verify --quiet "refs/heads/${right}" \
+               && git show-ref --verify --quiet "refs/heads/${wrong}"; then
+              echo "Deleting obsolete branch ${wrong} (kept ${right})"
+              git push origin --delete "${wrong}" || true
+            else
+              echo "Skip delete ${wrong} (right=${right} present?)"
+              git show-ref | grep -E "refs/heads/(${wrong}|${right})$" || true
+            fi
           done

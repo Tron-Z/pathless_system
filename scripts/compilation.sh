@@ -608,9 +608,9 @@ compile_firmware()
 	mkdir -p "${firmwaretempdir}/${plugin_dir}/lib/firmware"
 
 	if [[ $GITEE_SERVER == yes ]]; then
-		[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_BSP_FIRMWARE_REPO}" "${EXTER}/cache/sources/pathless-firmware-git" "${PATHLESS_FIRMWARE_BRANCH:-branch:master}"
+		[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_BSP_FIRMWARE_REPO}" "${EXTER}/cache/sources/pathless-firmware-git" "${PATHLESS_FIRMWARE_BRANCH:-branch:pathless-bsp-firmware}"
 	else
-		[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_BSP_FIRMWARE_REPO}" "${EXTER}/cache/sources/pathless-firmware-git" "${PATHLESS_FIRMWARE_BRANCH:-branch:master}"
+		[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_BSP_FIRMWARE_REPO}" "${EXTER}/cache/sources/pathless-firmware-git" "${PATHLESS_FIRMWARE_BRANCH:-branch:pathless-bsp-firmware}"
 	fi
 
 	if [[ -n $FULL ]]; then

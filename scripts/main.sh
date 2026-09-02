@@ -501,7 +501,7 @@ if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image || $BUILD_OPT == pack ]]; then
 	# Compile pathless-config if packed .deb does not exist or use the one from Pathless
 	if [[ ! -f ${DEB_STORAGE}/pathless-config_${REVISION}_all.deb ]]; then
 
-		[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_BSP_CONFIG_REPO}" "${EXTER}/cache/sources/pathless-config" "${PATHLESS_CONFIG_BRANCH:-branch:master}"
+		[[ $IGNORE_UPDATES != yes ]] && fetch_from_repo "${PATHLESS_BSP_CONFIG_REPO}" "${EXTER}/cache/sources/pathless-config" "${PATHLESS_CONFIG_BRANCH:-branch:pathless-bsp-config}"
 		[[ "${REPOSITORY_INSTALL}" != *pathless-config* ]] && compile_pathless-config
 	fi
 
