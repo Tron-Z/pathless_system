@@ -206,8 +206,8 @@ if [[ ${BUILD_OPT} =~ kernel|image ]]; then
 
 	if [[ -z $KERNEL_CONFIGURE ]]; then
 
-		options+=("no" "不修改内核配置")
-		options+=("yes" "编译前打开内核配置菜单")
+		options+=("no"	 "不修改内核配置")
+		options+=("yes"	 "编译前打开内核配置菜单")
 
 		menustr="请选择是否配置内核"
 		KERNEL_CONFIGURE=$(whiptail --title "${titlestr}" --backtitle "$backtitle" --notags \
