@@ -48,17 +48,12 @@ sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=pack RELEASE=jamm
 
 ## U-Boot 编译失败 `U-boot compilation failed`
 
-`pathless-rk3566_defconfig` 需要 `arch/arm/dts/rk3566-pathless-3b.dts`。若 U-Boot 源码树里只有 `rk3566-orangepi-3b.dts`，打包 `u-boot.itb` 会失败。
+`pathless-rk3566_defconfig` 需要 `arch/arm/dts/rk3566-pathless-3b.dts`，U-Boot 源码树里默认只有 `rk3566-orangepi-3b.dts`。构建脚本会在编译前自动生成 pathless DTS。
 
-**已修复（pathless-build 补丁）：** 拉取最新代码后重新编译，构建系统会自动打入 `external/patch/u-boot/.../001-add-rk3566-pathless-3b-dts.patch`。
-
-**临时手动修复（Linux 编译机）：**
+**清理后重编：**
 
 ```bash
-cd u-boot/$(ls u-boot | head -1)
-cp arch/arm/dts/rk3566-orangepi-3b.dts arch/arm/dts/rk3566-pathless-3b.dts
-sed -i 's/Orange Pi 3B/Pathless RK3566/g; s/rk3566-orangepi-3b/rk3566-pathless-3b/g' arch/arm/dts/rk3566-pathless-3b.dts
-cd ../..
+rm -f u-boot/*/arch/arm/dts/rk3566-pathless-3b.dtb
 sudo ./build.sh BUILD_OPT=u-boot BOARD=pathless-rk3566 BRANCH=current
 ```
 
