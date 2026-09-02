@@ -8,7 +8,7 @@ Pathless 官方镜像构建系统，当前支持 **Rockchip RK3566** 平台。
 
 | 仓库 | 分支 / 内容 |
 |:--|:--|
-| [pathless-build](https://github.com/Tron-Z/pathless-build) | 构建工程 |
+| [pathless_system](https://github.com/Tron-Z/pathless_system) | 构建工程 |
 | [pathless-bsp-kernel](https://github.com/Tron-Z/pathless-bsp-kernel) | 内核：`pathless-6.6-rk35xx` / `pathless-5.10-rk35xx` |
 | [pathless-bsp](https://github.com/Tron-Z/pathless-bsp) | BSP 合一：`u-boot` / `firmware` / `config` / `rkbin` / `rk35xx_packages` |
 | [pathless-3rdparty](https://github.com/Tron-Z/pathless-3rdparty) | 第三方：`oh-my-zsh` / `evalcache` / `wiringOP` / `wiringOP-Python` |
@@ -29,8 +29,8 @@ bash tools/migrate-unified-repos.sh
 ## 快速开始
 
 ```bash
-git clone https://github.com/Tron-Z/pathless-build.git
-cd pathless-build
+git clone https://github.com/Tron-Z/pathless_system.git
+cd pathless_system
 sudo ./build.sh
 ```
 

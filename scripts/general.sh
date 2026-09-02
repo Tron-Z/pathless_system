@@ -711,7 +711,7 @@ fingerprint_image()
 	Kernel:			Linux $VER
 	Build date:		$(date +'%d.%m.%Y')
 	Maintainer:		$MAINTAINER <$MAINTAINERMAIL>
-	Sources: 		https://github.com/Tron-Z/pathless-build
+	Sources: 		https://github.com/Tron-Z/pathless_system
 	Support: 		https://github.com/Tron-Z/
 	EOF
 

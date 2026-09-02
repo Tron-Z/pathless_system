@@ -124,7 +124,7 @@ RUN echo 'loop max_loop=128' >> /etc/modules
 
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8' TERM=screen
 WORKDIR /root/pathless
-LABEL org.opencontainers.image.source="https://github.com/Tron-Z/pathless-build/blob/main/external/config/templates/Dockerfile" \
+LABEL org.opencontainers.image.source="https://github.com/Tron-Z/pathless_system/blob/main/external/config/templates/Dockerfile" \
  
     org.opencontainers.image.authors="Igor Pecovnik" \
     org.opencontainers.image.licenses="GPL-2.0"
