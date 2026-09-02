@@ -52,22 +52,21 @@ jobs:
           cd /tmp/up-wt
 
           echo "Pre-graft commit count: $(git rev-list --count HEAD)"
-          ROOT=$(git rev-list --reverse HEAD | head -n1)
+          # Oldest commit in this shallow window (avoid SIGPIPE under pipefail).
+          ROOT=$(git rev-list --reverse HEAD | sed -n '1p')
           echo "Grafting root commit: ${ROOT}"
+          test -n "${ROOT}"
           git replace --graft "${ROOT}"
-          # Rewrite history so graft becomes a real root (pushable, non-shallow)
-          FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --tag-name-filter cat -- --all
-          rm -rf .git/refs/original .git/refs/replace
-          git reflog expire --expire=now --all
-          git gc --prune=now --aggressive
 
-          # Ensure we are not marked shallow
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git-filter-repo
+          # Materialize graft into real history (removes shallow boundary).
+          git filter-repo --force
           rm -f .git/shallow || true
 
           echo "Post-rewrite commit count: $(git rev-list --count HEAD)"
           git log -3 --oneline
 
-          git remote remove origin || true
           git remote add origin "${DST_URL}"
 
           attempt=1
