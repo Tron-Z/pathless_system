@@ -23,6 +23,33 @@ sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=image RELEASE=jam
 
 远程地址与分支名见 `external/config/sources/pathless-repos.conf`。
 
+## 构建选项（BUILD_OPT）
+
+| 值 | 说明 |
+|:--|:--|
+| `u-boot` | 仅编译 U-Boot |
+| `kernel` | 仅编译内核 |
+| `rootfs` | rootfs 及 deb 包 |
+| `image` | **完整镜像**（推荐，含上述全部） |
+
+`userpatches/config-default.conf` 已默认 `BUILD_OPT=image`。非交互全量编译：
+
+```bash
+sudo ./build.sh BOARD=pathless-rk3566 BRANCH=current BUILD_OPT=image RELEASE=jammy BUILD_DESKTOP=no
+```
+
+## 从 Windows 拷贝到 Linux 后报错 `$'\r'`
+
+脚本必须是 **Unix LF** 换行。在工程根目录执行：
+
+```bash
+bash tools/normalize-eol.sh
+```
+
+或：`find . -type f \( -name '*.sh' -o -name '*.conf' -o -name '*.inc' \) -exec sed -i 's/\r$//' {} + && sed -i 's/\r$//' build.sh`
+
+建议工程放在 Linux 本地目录（如 `~/pathless-build`），不要长期在 `/mnt/c` 或 SMB 共享盘上编译。
+
 ## 许可证
 
 构建脚本 GPL-2.0；瑞芯微闭源二进制版权归 Rockchip 所有。
