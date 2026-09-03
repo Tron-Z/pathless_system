@@ -10,6 +10,7 @@
 
 !external/patch/u-boot/**/*
 !external/patch/kernel/**/*
+!external/patch/misc/**/*
 b.sh
 .tmp
 kernel
@@ -23,6 +24,7 @@ mkimage.sh
 
 !external/patch/u-boot
 !external/patch/kernel
+!external/patch/misc
 !external/config/kernel
 !external/packages/bsp/common/etc/kernel
 !external/branding/kernel/**/*
