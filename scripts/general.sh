@@ -1445,7 +1445,7 @@ prepare_host()
 	zlib1g-dev gcc-riscv64-linux-gnu uuid-runtime fatattr git-lfs scons       \
 	mtools"
 
-  if [[ $(dpkg --print-architecture) == amd64 ]]; then
+	if [[ $(dpkg --print-architecture) == amd64 ]]; then
 
 	hostdeps+=" distcc lib32ncurses-dev lib32stdc++6 libc6-i386"
 	grep -q i386 <(dpkg --print-foreign-architectures) || dpkg --add-architecture i386
@@ -1664,22 +1664,13 @@ prepare_host()
 
 
 
-# TUNA/BFSU WAF rejects aria2/curl default User-Agent with HTTP 403
-# ("software with uncommon characteristics"). Keep mirrors unchanged; look like a browser.
-DOWNLOAD_HTTP_UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-
-function curl_mirror_head()
-{
-	timeout 15 curl --head --fail --silent -A "${DOWNLOAD_HTTP_UA}" "$@"
-}
-
 function webseed ()
 {
 	# list of mirrors that host our files
 	unset text
 	# Hardcoded to EU mirrors since
-	local CCODE=$(curl -s -A "${DOWNLOAD_HTTP_UA}" redirect.armbian.com/geoip | jq '.continent.code' -r)
-	WEBSEED=($(curl -s -A "${DOWNLOAD_HTTP_UA}" https://redirect.armbian.com/mirrors | jq -r '.'${CCODE}' | .[] | values'))
+	local CCODE=$(curl -s redirect.armbian.com/geoip | jq '.continent.code' -r)
+	WEBSEED=($(curl -s https://redirect.armbian.com/mirrors | jq -r '.'${CCODE}' | .[] | values'))
 	# aria2 simply split chunks based on sources count not depending on download speed
 	# when selecting china mirrors, use only China mirror, others are very slow there
 	if [[ $DOWNLOAD_MIRROR == china ]]; then
@@ -1704,6 +1695,61 @@ function webseed ()
 }
 
 
+# Recover from tuna/bfsu WAF intercept: do not keep hitting those hosts with aria2.
+# Same Armbian toolchain files, via curl + domestic mirrors that share the tree.
+toolchain_http_get()
+{
+	local url=$1
+	local output=$2
+	local ua="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+	local rest u
+	local urls=("${url}")
+
+	if [[ ${url} == *iplaystore.cn* ]]; then
+		aria2c --download-result=hide --rpc-save-upload-metadata=false --console-log-level=error \
+			--dht-file-path="${SRC}"/cache/.aria2/dht.dat --disable-ipv6=true --summary-interval=0 \
+			--auto-file-renaming=false --continue=false --allow-overwrite=true \
+			--dir="${PWD}" -o "${output}" "${url}"
+		[[ $? -eq 0 && -s ${output} ]] && return 0
+		return 1
+	fi
+
+	if [[ ${url} == *mirrors.tuna.tsinghua.edu.cn/armbian-releases/* ]]; then
+		rest="${url#*mirrors.tuna.tsinghua.edu.cn/armbian-releases/}"
+		urls=(
+			"https://mirrors.cstcloud.cn/armbian-releases/${rest}"
+			"https://mirrors.ustc.edu.cn/armbian-dl/${rest}"
+			"https://mirrors.cqupt.edu.cn/armbian-dl/${rest}"
+		)
+	elif [[ ${url} == *mirrors.bfsu.edu.cn/armbian-releases/* ]]; then
+		rest="${url#*mirrors.bfsu.edu.cn/armbian-releases/}"
+		urls=(
+			"https://mirrors.cstcloud.cn/armbian-releases/${rest}"
+			"https://mirrors.ustc.edu.cn/armbian-dl/${rest}"
+			"https://mirrors.cqupt.edu.cn/armbian-dl/${rest}"
+		)
+	elif [[ ${url} == *mirrors.cstcloud.cn/armbian-releases/* ]]; then
+		rest="${url#*mirrors.cstcloud.cn/armbian-releases/}"
+		urls=(
+			"https://mirrors.cstcloud.cn/armbian-releases/${rest}"
+			"https://mirrors.ustc.edu.cn/armbian-dl/${rest}"
+			"https://mirrors.cqupt.edu.cn/armbian-dl/${rest}"
+		)
+	fi
+
+	for u in "${urls[@]}"; do
+		rm -f "${output}"
+		if curl --fail --location --retry 2 --retry-delay 1 \
+			--user-agent "${ua}" \
+			--referer "${u%/*}/" \
+			--output "${output}" \
+			"${u}"; then
+			[[ -s ${output} ]] && return 0
+		fi
+		display_alert "Timeout from ${u}" "retrying" "info"
+	done
+	return 1
+}
 
 
 download_and_verify()
@@ -1713,12 +1759,13 @@ download_and_verify()
 	local filename=$2
 	local localdir=$SRC/toolchains
 	local dirname=${filename//.tar.xz}
-	local aria_ua=(--user-agent="${DOWNLOAD_HTTP_UA}")
+	local verified=false
 
         if [[ $DOWNLOAD_MIRROR == china ]]; then
-			local server="https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/"
+			# tuna/bfsu already 403 this host; CSTCloud keeps the same /armbian-releases/_toolchain/ layout
+			local server="https://mirrors.cstcloud.cn/armbian-releases/"
 		elif [[ $DOWNLOAD_MIRROR == bfsu ]]; then
-			local server="https://mirrors.bfsu.edu.cn/armbian-releases/"
+			local server="https://mirrors.cstcloud.cn/armbian-releases/"
 		else
 			local server=${ARMBIAN_MIRROR}
         fi
@@ -1732,19 +1779,19 @@ download_and_verify()
 	fi
 
 	# switch to china mirror if US timeouts
-	curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1
+	timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null
 	if [[ $? -ne 7 && $? -ne 22 && $? -ne 0 ]]; then
 		display_alert "Timeout from $server" "retrying" "info"
-		server="https://mirrors.tuna.tsinghua.edu.cn/armbian-releases/"
+		server="https://mirrors.ustc.edu.cn/armbian-dl/"
 		if [[ ${filename} == *ky* ]] || [[ ${filename} == *arm-gnu-toolchain* ]]; then
 			server="http://www.iplaystore.cn/upload/"
 		fi
 
 		# switch to another china mirror if tuna timeouts
-		curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1
+		timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null
 		if [[ $? -ne 7 && $? -ne 22 && $? -ne 0 ]]; then
 			display_alert "Timeout from $server" "retrying" "info"
-			server="https://mirrors.bfsu.edu.cn/armbian-releases/"
+			server="https://mirrors.cqupt.edu.cn/armbian-dl/"
 			if [[ ${filename} == *ky* ]] || [[ ${filename} == *arm-gnu-toolchain* ]]; then
 				server="http://www.iplaystore.cn/upload/"
 			fi
@@ -1752,7 +1799,7 @@ download_and_verify()
 	fi
 
 	# check if file exists on remote server before running aria2 downloader
-	curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1 || return
+	[[ ! `timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename}` ]] && return
 
 	cd "${localdir}" || exit
 
@@ -1760,13 +1807,12 @@ download_and_verify()
 	if [[ -f "${EXTER}"/config/torrents/${filename}.asc ]]; then
 		local torrent="${EXTER}"/config/torrents/${filename}.torrent
 		ln -sf "${EXTER}/config/torrents/${filename}.asc" "${localdir}/${filename}.asc"
-	elif ! curl_mirror_head "${server}${remotedir}/${filename}.asc" >/dev/null 2>&1; then
+	elif [[ ! `timeout 10 curl --head --fail --silent "${server}${remotedir}/${filename}.asc"` ]]; then
 		return
 	else
 		# download control file
 		local torrent=${server}$remotedir/${filename}.torrent
-		aria2c "${aria_ua[@]}" --download-result=hide --disable-ipv6=true --summary-interval=0 --console-log-level=error --auto-file-renaming=false \
-		--continue=false --allow-overwrite=true --dir="${localdir}" ${server}${remotedir}/${filename}.asc $(webseed "$remotedir/${filename}.asc") -o "${filename}.asc"
+		toolchain_http_get "${server}${remotedir}/${filename}.asc" "${filename}.asc"
 		[[ $? -ne 0 ]] && display_alert "Failed to download control file" "" "wrn"
 	fi
 
@@ -1774,7 +1820,7 @@ download_and_verify()
 	if [[ ${USE_TORRENT} == "yes" ]]; then
 
 		display_alert "downloading using torrent network" "$filename"
-		local ariatorrent="--user-agent=${DOWNLOAD_HTTP_UA} --summary-interval=0 --auto-save-interval=0 --seed-time=0 --bt-stop-timeout=120 --console-log-level=error \
+		local ariatorrent="--summary-interval=0 --auto-save-interval=0 --seed-time=0 --bt-stop-timeout=120 --console-log-level=error \
 		--allow-overwrite=true --download-result=hide --rpc-save-upload-metadata=false --auto-file-renaming=false \
 		--file-allocation=trunc --continue=true ${torrent} \
 		--dht-file-path=$EXTER/cache/.aria2/dht.dat --disable-ipv6=true --stderr --follow-torrent=mem --dir=${localdir}"
@@ -1795,15 +1841,18 @@ download_and_verify()
 
 	# direct download if torrent fails
 	if [[ ! -f "${localdir}/${filename}.complete" ]]; then
-		if curl_mirror_head "${server}${remotedir}/${filename}" >/dev/null 2>&1; then
+		if [[ ! `timeout 10 curl --head --fail --silent ${server}${remotedir}/${filename} 2>&1 >/dev/null` ]]; then
 			display_alert "downloading using http(s) network" "$filename"
-			aria2c "${aria_ua[@]}" --download-result=hide --rpc-save-upload-metadata=false --console-log-level=error \
-			--dht-file-path="${SRC}"/cache/.aria2/dht.dat --disable-ipv6=true --summary-interval=0 --auto-file-renaming=false --dir="${localdir}" \
-			${server}${remotedir}/${filename} $(webseed "${remotedir}/${filename}") -o "${filename}"
+			toolchain_http_get "${server}${remotedir}/${filename}" "${filename}"
 			# mark complete
 			[[ $? -eq 0 ]] && touch "${localdir}/${filename}.complete" && echo ""
 
 		fi
+	fi
+
+	if [[ ! -f ${localdir}/${filename} ]]; then
+		display_alert "Download incomplete" "$filename" "wrn"
+		return
 	fi
 
 	if [[ -f ${localdir}/${filename}.asc ]]; then

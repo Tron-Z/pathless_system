@@ -25,6 +25,8 @@ fi
 [[ $BRANCH != "next" ]] && PACKAGE_LIST_FAMILY_REMOVE="mpv"
 
 RKBIN_DIR="$EXTER/cache/sources/rkbin-tools"
+# pathless rkbin branch is upstream layout (bin/rk35); orangepi flattens to rk35/
+[[ -d "${RKBIN_DIR}/bin/rk35" ]] && RKBIN_DIR="${RKBIN_DIR}/bin"
 if [ "$(uname -m)" = "aarch64" ]; then
 	case "$(lsb_release -sc)" in
 	"bookworm"|"bullseye"|"focal"|"jammy")
@@ -69,8 +71,8 @@ elif [[ $BOARD =~ pathless-rk3566-cm|pathless-rk3566 ]]; then
 
         BOOT_SCENARIO="${BOOT_SCENARIO:=spl-blobs}"
 	BOOT_SOC=rk3568
-        DDR_BLOB="${DDR_BLOB:=rk35/rk3566_ddr_1056MHz_v1.10.bin}"
-	BL31_BLOB='rk35/rk3568_bl31_v1.28.elf'
+        DDR_BLOB="${DDR_BLOB:=rk35/rk3566_ddr_1056MHz_v1.26.bin}"
+	BL31_BLOB='rk35/rk3568_bl31_v1.46.elf'
 
 else
 
