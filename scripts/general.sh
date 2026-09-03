@@ -660,6 +660,20 @@ fetch_from_repo()
 			else
 				sref="head"
 			fi
+			# wiringOP-Python records a nested wiringOP submodule. OrangePi left
+			# orangepi-xunlong/wiringOP (branch next); Pathless keeps that tree as
+			# this monorepo's wiringOP branch. Reuse the copy already fetched by
+			# install_wiringop so a China GitHub mirror/proxy is not needed again.
+			if [[ "$i" == "wiringOP" ]]; then
+				local cached_wiringop="${EXTER}/cache/sources/wiringOP/wiringOP"
+				if [[ -d "${cached_wiringop}/.git" ]]; then
+					surl="${cached_wiringop}"
+					sref="head"
+				elif [[ "$surl" == *"orangepi-xunlong/"* ]]; then
+					surl="${PATHLESS_SYSTEM_REPO:-https://github.com/Tron-Z/pathless_system.git}"
+					sref="branch:wiringOP"
+				fi
+			fi
 			fetch_from_repo "$surl" "$workdir/$i" "$sref"
 		done
 	fi
