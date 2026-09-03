@@ -1,4 +1,4 @@
 [submodule "wiringOP"]
 	path = wiringOP
-	url = https://github.com/orangepi-xunlong/wiringOP
-	branch = next
+	url = https://github.com/Tron-Z/pathless_system.git
+	branch = wiringOP
