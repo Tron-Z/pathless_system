@@ -346,6 +346,13 @@ POST_FAMILY_TWEAKS_BSP
 	if [[ -f "${destination}/etc/initramfs/post-update.d/99-uboot" ]]; then
 		chmod 755 "${destination}/etc/initramfs/post-update.d/99-uboot"
 	fi
+	# dh_fixperms-style pass keeps +x only when the source tree already had it.
+	# First-boot services (resize/zram/ramlog/monitor) live here; 644 -> systemd 203/EXEC.
+	[[ -d "${destination}/usr/lib/pathless" ]] && find "${destination}/usr/lib/pathless" -type f -exec chmod 755 {} +
+	[[ -d "${destination}/etc/update-motd.d" ]] && find "${destination}/etc/update-motd.d" -type f -exec chmod 755 {} +
+	find "${destination}/usr/sbin" "${destination}/usr/bin" "${destination}/usr/local/bin" \
+		-type f \( -name 'pathless-*' -o -name 'pathlessmonitor' -o -name 'nand-sata-install' \
+		-o -name 'burn_to_emmc' -o -name 'memtester.sh' \) -exec chmod 755 {} + 2>/dev/null || true
 
 	# create board DEB file
 	fakeroot dpkg-deb -b -Z${DEB_COMPRESS} "${destination}" "${destination}.deb" >> "${DEST}"/${LOG_SUBPATH}/output.log 2>&1
