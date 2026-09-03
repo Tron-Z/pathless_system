@@ -26,6 +26,7 @@ mkimage.sh
 !external/patch/kernel
 !external/patch/misc
 !external/config/kernel
+!external/config/kernel/**
 !external/packages/bsp/common/etc/kernel
 !external/branding/kernel/**/*
 

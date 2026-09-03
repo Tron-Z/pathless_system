@@ -439,6 +439,8 @@ compile_kernel()
 			display_alert "Using kernel config provided by user" "userpatches/$LINUXCONFIG.config" "info"
 			cp -p "${USERPATCHES_PATH}/${LINUXCONFIG}.config" .config
 		else
+			[[ -f "${EXTER}/config/kernel/${LINUXCONFIG}.config" ]] || \
+				exit_with_error "Kernel config file not found" "${EXTER}/config/kernel/${LINUXCONFIG}.config"
 			display_alert "Using kernel config file" "${EXTER}/config/kernel/$LINUXCONFIG.config" "info"
 			cp -p "${EXTER}/config/kernel/${LINUXCONFIG}.config" .config
 		fi
