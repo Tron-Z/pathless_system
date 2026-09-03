@@ -357,9 +357,6 @@ POST_INSTALL_KERNEL_DEBS
 	if [[ -f "${SDCARD}/etc/initramfs/post-update.d/99-uboot" ]]; then
 		chmod 755 "${SDCARD}/etc/initramfs/post-update.d/99-uboot"
 	fi
-	# Reused BSP debs from a Windows checkout can still ship 644 helpers.
-	[[ -d "${SDCARD}/usr/lib/pathless" ]] && find "${SDCARD}/usr/lib/pathless" -type f -exec chmod 755 {} +
-	[[ -d "${SDCARD}/etc/update-motd.d" ]] && find "${SDCARD}/etc/update-motd.d" -type f -exec chmod 755 {} +
 
 	# install pathless-desktop
 	if [[ "${REPOSITORY_INSTALL}" != *pathless-desktop* ]]; then

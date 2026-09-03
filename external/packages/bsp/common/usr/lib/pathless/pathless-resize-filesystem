@@ -114,33 +114,18 @@ do_expand_partition()
 	# Start resizing
 	echo -e "\n### [resize2fs] ${ResizeLog}. Start resizing partition $rootsource now:\n" >>${Log}
 	cat /proc/partitions >>${Log}
-	local pttype
-	pttype=$(blkid -o value -s PTTYPE "$rootdevicepath" 2>/dev/null)
-	# GPT (pathless-rk3566 / orangepi3b): fdisk "n/p" is the MBR recipe and fails,
-	# leaving a ~2GB image partition that later remounts the rootfs read-only.
-	if [[ ${pttype} == gpt ]]; then
-		echo -e "\nExecuting parted resizepart on GPT:\n" >>${Log}
-		if [[ -n ${lastsector} ]]; then
-			echo -e "resizepart ${partitions} ${lastsector}s\nYes\nquit" | \
-				parted "${rootdevicepath}" ---pretend-input-tty >>${Log} 2>&1
-		else
-			echo -e "resizepart ${partitions} 100%\nYes\nquit" | \
-				parted "${rootdevicepath}" ---pretend-input-tty >>${Log} 2>&1
-		fi
+	echo -e "\nExecuting fdisk, fsck and partprobe:" >>${Log}
+	local fdisk_version=$(fdisk --version | awk '{print $NF}' | grep -oE "^[[:digit:]]\.[[:digit:]]+")
+	if [[ $partitions == 1 ]] && awk "BEGIN{exit ! ($fdisk_version >= 2.27 )}"; then
+		# if dealing with fdisk from util-linux 2.27+ we need a workaround for just 1 partition
+		# though it does not break anything - just prevents an "unexpected command" to fdisk
+		# https://github.com/igorpecovnik/lib/issues/353#issuecomment-224728506
+		((echo d; echo n; echo p; echo ; echo $startfrom; echo $lastsector ; echo w;) | fdisk $rootdevicepath) >>${Log} 2>&1
 	else
-		echo -e "\nExecuting fdisk, fsck and partprobe:" >>${Log}
-		local fdisk_version=$(fdisk --version | awk '{print $NF}' | grep -oE "^[[:digit:]]\.[[:digit:]]+")
-		if [[ $partitions == 1 ]] && awk "BEGIN{exit ! ($fdisk_version >= 2.27 )}"; then
-			# if dealing with fdisk from util-linux 2.27+ we need a workaround for just 1 partition
-			# though it does not break anything - just prevents an "unexpected command" to fdisk
-			# https://github.com/igorpecovnik/lib/issues/353#issuecomment-224728506
-			((echo d; echo n; echo p; echo ; echo $startfrom; echo $lastsector ; echo w;) | fdisk $rootdevicepath) >>${Log} 2>&1
-		else
-			((echo d; echo $partitions; echo n; echo p; echo ; echo $startfrom; echo $lastsector ; echo w;) | fdisk $rootdevicepath) >>${Log} 2>&1
-		fi
-		[[ -n $secondpartition ]] && \
-			((echo n; echo p; echo ; echo $(( $lastsector + 1 )); echo $secondpartition ; echo w;) | fdisk $rootdevicepath) >>${Log} 2>&1
+		((echo d; echo $partitions; echo n; echo p; echo ; echo $startfrom; echo $lastsector ; echo w;) | fdisk $rootdevicepath) >>${Log} 2>&1
 	fi
+	[[ -n $secondpartition ]] && \
+		((echo n; echo p; echo ; echo $(( $lastsector + 1 )); echo $secondpartition ; echo w;) | fdisk $rootdevicepath) >>${Log} 2>&1
 	local s=0
 	partprobe $rootdevicepath >>${Log} 2>&1 || s=$?
 
