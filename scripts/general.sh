@@ -55,6 +55,7 @@ cleaning()
 			find "${DEB_STORAGE}" \( -name "${CHOSEN_KERNEL}_*.deb" -o \
 				-name "pathless-*.deb" -o \
 				-name "plymouth-theme-pathless_*.deb" -o \
+				-name "pathless-plymouth-theme_*.deb" -o \
 				-name "${CHOSEN_KERNEL/image/dtb}_*.deb" -o \
 				-name "${CHOSEN_KERNEL/image/headers}_*.deb" -o \
 				-name "${CHOSEN_KERNEL/image/source}_*.deb" -o \

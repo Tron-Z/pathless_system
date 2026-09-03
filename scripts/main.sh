@@ -438,7 +438,7 @@ if [[ ${IGNORE_UPDATES} != yes ]]; then
 
 	fi
 
-	if [[ ${BOARDFAMILY} == "rockchip-rk356x" && $RELEASE =~ bullseye|focal|jammy|raspi ]]; then
+	if [[ ${BOARDFAMILY} == "rockchip-rk356x" && $RELEASE =~ bullseye|focal|jammy|raspi|bookworm ]]; then
 
 		[[ ${BUILD_OPT} =~ image|pack ]] && fetch_from_repo "${PATHLESS_ROCKCHIP_REPO}" "${EXTER}/cache/sources/rk35xx_packages" "${PATHLESS_RK35XX_PACKAGES_BRANCH}"
 
@@ -482,7 +482,11 @@ fi
 # Compile kernel if packed .deb does not exist or use the one from Pathless
 if [[ $BUILD_OPT == kernel || $BUILD_OPT == image ]]; then
 
-	if [[ ! -f ${DEB_STORAGE}/${CHOSEN_KERNEL}_${REVISION}_${ARCH}.deb ]]; then 
+	# bindeb-pkg emits image+dtb+headers together. Skipping when only the image
+	# deb exists leaves linux-headers (and linux-source) unbuilt.
+	if [[ ! -f ${DEB_STORAGE}/${CHOSEN_KERNEL}_${REVISION}_${ARCH}.deb || \
+		! -f ${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb || \
+		( $BUILD_KSRC != no && ! -f ${DEB_STORAGE}/${CHOSEN_KSRC}_${REVISION}_all.deb ) ]]; then
 
 		KDEB_CHANGELOG_DIST=$RELEASE
 		[[ "${REPOSITORY_INSTALL}" != *kernel* ]] && compile_kernel
@@ -512,7 +516,8 @@ if [[ $BUILD_OPT == rootfs || $BUILD_OPT == image || $BUILD_OPT == pack ]]; then
 	fi
 
 	# Compile plymouth-theme-pathless if packed .deb does not exist or use the one from repository
-	if [[ ! -f ${DEB_STORAGE}/plymouth-theme-pathless_${REVISION}_all.deb && $PLYMOUTH == yes ]]; then
+	# dpkg filename matches Package: pathless-plymouth-theme (see compile_plymouth-theme-pathless)
+	if [[ ! -f ${DEB_STORAGE}/pathless-plymouth-theme_${REVISION}_all.deb && $PLYMOUTH == yes ]]; then
 
 		[[ "${REPOSITORY_INSTALL}" != *plymouth-theme-pathless* ]] && compile_plymouth-theme-pathless
 	fi

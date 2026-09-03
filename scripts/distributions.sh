@@ -308,10 +308,14 @@ PRE_INSTALL_KERNEL_DEBS
 			if [[ -f ${DEB_STORAGE}/${CHOSEN_KERNEL/image/dtb}_${REVISION}_${ARCH}.deb ]]; then
 				install_deb_chroot "${DEB_STORAGE}/${CHOSEN_KERNEL/image/dtb}_${REVISION}_${ARCH}.deb"
 			fi
-			if [[ $INSTALL_HEADERS == yes ]]; then
-				install_deb_chroot "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb"
+			if [[ -f ${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb ]]; then
+				if [[ $INSTALL_HEADERS == yes ]]; then
+					install_deb_chroot "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb"
+				else
+					cp "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "${SDCARD}"/opt/
+				fi
 			else
-				cp "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "${SDCARD}"/opt/
+				display_alert "Missing kernel headers package" "${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "wrn"
 			fi
 		else
 			VER=$(dpkg --info "${DEB_PATHLESS}/${CHOSEN_KERNEL}_${REVISION}_${ARCH}.deb" | grep Descr | awk '{print $(NF)}')
@@ -323,8 +327,14 @@ PRE_INSTALL_KERNEL_DEBS
 				install_deb_chroot "${DEB_PATHLESS}/${CHOSEN_KERNEL/image/dtb}_${REVISION}_${ARCH}.deb" "pathless"
 			fi
 
-			if [[ $INSTALL_HEADERS == yes ]]; then
-				install_deb_chroot "${DEB_PATHLESS}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "pathless"
+			if [[ -f ${DEB_PATHLESS}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb ]]; then
+				if [[ $INSTALL_HEADERS == yes ]]; then
+					install_deb_chroot "${DEB_PATHLESS}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "pathless"
+				else
+					cp "${DEB_PATHLESS}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "${SDCARD}"/opt/
+				fi
+			else
+				display_alert "Missing kernel headers package" "${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "wrn"
 			fi
 		fi
 	}
@@ -959,10 +969,14 @@ install_pathless_specific()
 	if [[ -f ${DEB_STORAGE}/${CHOSEN_KERNEL/image/dtb}_${REVISION}_${ARCH}.deb ]]; then
 		install_deb_chroot "${DEB_STORAGE}/${CHOSEN_KERNEL/image/dtb}_${REVISION}_${ARCH}.deb"
 	fi
-	if [[ $INSTALL_HEADERS == yes ]]; then
-		install_deb_chroot "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb"
+	if [[ -f ${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb ]]; then
+		if [[ $INSTALL_HEADERS == yes ]]; then
+			install_deb_chroot "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb"
+		else
+			cp "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "${SDCARD}"/opt/
+		fi
 	else
-		cp "${DEB_STORAGE}/${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "${SDCARD}"/opt/
+		display_alert "Missing kernel headers package" "${CHOSEN_KERNEL/image/headers}_${REVISION}_${ARCH}.deb" "wrn"
 	fi
 
 	dpkg_install_deb_chroot "$EXTER/packages/raspi/pathless/debs/raspi-config_20230214_all.deb"

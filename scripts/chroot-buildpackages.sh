@@ -373,36 +373,56 @@ create_build_script ()
 chroot_installpackages_local()
 {
 	local conf=$EXTER/config/aptly-temp.conf
+	local extra_root extra_dir extra_has_debs=no extra_pid=""
 	rm -rf /tmp/aptly-temp/
 	mkdir -p /tmp/aptly-temp/
 	aptly -config="${conf}" repo create temp >> "${DEST}"/${LOG_SUBPATH}/install.log
-	# NOTE: this works recursively
+
 	if [[ $EXTERNAL_NEW == prebuilt ]]; then
-		aptly -config="${conf}" repo add temp "${DEB_PATHLESS}/extra/${RELEASE}-desktop/" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
-		aptly -config="${conf}" repo add temp "${DEB_PATHLESS}/extra/${RELEASE}-utils/" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
+		extra_root="${DEB_PATHLESS}/extra"
 	else
-		aptly -config="${conf}" repo add temp "${DEB_STORAGE}/extra/${RELEASE}-desktop/" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
-		aptly -config="${conf}" repo add temp "${DEB_STORAGE}/extra/${RELEASE}-utils/" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
+		extra_root="${DEB_STORAGE}/extra"
 	fi
-	
-	# -gpg-key="925644A6"
-	[[ ! -d /root/.gnupg ]] && mkdir -p /root/.gnupg
-	aptly -keyring="$EXTER/packages/extras-buildpkgs/buildpkg-public.gpg" -secret-keyring="$EXTER/packages/extras-buildpkgs/buildpkg.gpg" -batch=true -config="${conf}" \
-		 -gpg-key="925644A6" -passphrase="testkey1234" -component=temp -distribution="${RELEASE}" publish repo temp >> "${DEST}"/${LOG_SUBPATH}/install.log
-	#aptly -config="${conf}" -listen=":8189" serve &
-	aptly -config="${conf}" -listen=":8189" serve >> "${DEST}"/debug/install.log 2>&1 &
-	local aptly_pid=$!
-	cp $EXTER/packages/extras-buildpkgs/buildpkg.key "${SDCARD}"/tmp/buildpkg.key
-	cat <<-'EOF' > "${SDCARD}"/etc/apt/preferences.d/90-pathless-temp.pref
-	Package: *
-	Pin: origin "localhost"
-	Pin-Priority: 550
-	EOF
-	cat <<-EOF > "${SDCARD}"/etc/apt/sources.list.d/pathless-temp.list
-	deb http://localhost:8189/ $RELEASE temp
-	EOF
-	chroot_installpackages
-	kill "${aptly_pid}" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
+
+	# Adding a directory with no .deb (jammy-desktop/null.txt) makes aptly
+	# fail to guess architectures and skip the whole extras repo.
+	for extra_dir in "${extra_root}/${RELEASE}-desktop" "${extra_root}/${RELEASE}-utils"; do
+		if find "${extra_dir}" -type f -name '*.deb' 2>/dev/null | grep -q .; then
+			aptly -config="${conf}" repo add temp "${extra_dir}" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
+			extra_has_debs=yes
+		fi
+	done
+
+	if [[ $extra_has_debs == yes ]]; then
+		[[ ! -d /root/.gnupg ]] && mkdir -p /root/.gnupg
+		if aptly -keyring="$EXTER/packages/extras-buildpkgs/buildpkg-public.gpg" \
+			-secret-keyring="$EXTER/packages/extras-buildpkgs/buildpkg.gpg" \
+			-batch=true -config="${conf}" \
+			-gpg-key="925644A6" -passphrase="testkey1234" \
+			-component=temp -distribution="${RELEASE}" \
+			-architectures="${ARCH},all" \
+			publish repo temp >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1; then
+			aptly -config="${conf}" -listen=":8189" serve >> "${DEST}"/debug/install.log 2>&1 &
+			extra_pid=$!
+			cp $EXTER/packages/extras-buildpkgs/buildpkg.key "${SDCARD}"/tmp/buildpkg.key
+			cat <<-'EOF' > "${SDCARD}"/etc/apt/preferences.d/90-pathless-temp.pref
+			Package: *
+			Pin: origin "localhost"
+			Pin-Priority: 550
+			EOF
+			cat <<-EOF > "${SDCARD}"/etc/apt/sources.list.d/pathless-temp.list
+			deb http://localhost:8189/ $RELEASE temp
+			EOF
+		else
+			display_alert "extras aptly publish failed" "installing hostapd/htop/mmc-utils from Ubuntu" "wrn"
+			extra_has_debs=no
+		fi
+	else
+		display_alert "No prebuilt extras debs" "installing hostapd/htop/mmc-utils from Ubuntu" "info"
+	fi
+
+	chroot_installpackages "$extra_has_debs"
+	[[ -n $extra_pid ]] && kill "${extra_pid}" >> "${DEST}"/${LOG_SUBPATH}/install.log 2>&1
 } #############################################################################
 
 # chroot_installpackages
@@ -426,11 +446,13 @@ chroot_installpackages()
 	[[ $NO_APT_CACHER != yes ]] && local apt_extra="-o Acquire::http::Proxy=\"http://${APT_PROXY_ADDR:-localhost:3142}\" -o Acquire::http::Proxy::localhost=\"DIRECT\""
 	cat <<-EOF > "${SDCARD}"/tmp/install.sh
 	#!/bin/bash
-	apt-key add /tmp/buildpkg.key
+	if [[ -f /tmp/buildpkg.key ]]; then
+		apt-key add /tmp/buildpkg.key
+	fi
 	apt-get $apt_extra -q update
 	apt-get -q ${apt_extra} --show-progress -o DPKG::Progress-Fancy=1 install -y ${install_list}
 	apt-get clean
-	apt-key del "925644A6"
+	apt-key del "925644A6" 2>/dev/null || true
 	rm /etc/apt/sources.list.d/pathless-temp.list 2>/dev/null
 	rm /etc/apt/preferences.d/90-pathless-temp.pref 2>/dev/null
 	rm /tmp/buildpkg.key 2>/dev/null
