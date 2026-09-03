@@ -342,6 +342,12 @@ POST_INSTALL_KERNEL_DEBS
 		install_deb_chroot "${DEB_PATHLESS}/$RELEASE/${CHOSEN_ROOTFS}_${BSP_CLI_PACKAGE_FULLNAME}.deb" "pathless"
 	fi
 
+	# Debian run-parts skips non-executable files. If 99-uboot lost +x (Windows
+	# git filemode / an older BSP deb), update-initramfs never writes /boot/uInitrd.
+	if [[ -f "${SDCARD}/etc/initramfs/post-update.d/99-uboot" ]]; then
+		chmod 755 "${SDCARD}/etc/initramfs/post-update.d/99-uboot"
+	fi
+
 	# install pathless-desktop
 	if [[ "${REPOSITORY_INSTALL}" != *pathless-desktop* ]]; then
 		if [[ $BUILD_DESKTOP == yes ]]; then

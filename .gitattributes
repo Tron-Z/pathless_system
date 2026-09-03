@@ -5,3 +5,5 @@
 build.sh text eol=lf
 .gitignore text eol=lf
 Dockerfile text eol=lf
+# no .sh suffix; CRLF would make run-parts fail the shebang
+external/packages/bsp/common/etc/initramfs/post-update.d/99-uboot text eol=lf

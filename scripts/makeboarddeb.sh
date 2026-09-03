@@ -341,6 +341,11 @@ POST_FAMILY_TWEAKS_BSP
 	# fixing permissions (basic), reference: dh_fixperms
 	find "${destination}" -print0 2>/dev/null | xargs -0r chown --no-dereference 0:0
 	find "${destination}" ! -type l -print0 2>/dev/null | xargs -0r chmod 'go=rX,u+rw,a-s'
+	# dh_fixperms-style chmod above keeps +x only if it was already set. Force the
+	# U-Boot initramfs hook executable so run-parts actually converts uInitrd.
+	if [[ -f "${destination}/etc/initramfs/post-update.d/99-uboot" ]]; then
+		chmod 755 "${destination}/etc/initramfs/post-update.d/99-uboot"
+	fi
 
 	# create board DEB file
 	fakeroot dpkg-deb -b -Z${DEB_COMPRESS} "${destination}" "${destination}.deb" >> "${DEST}"/${LOG_SUBPATH}/output.log 2>&1
