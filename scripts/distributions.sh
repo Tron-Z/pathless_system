@@ -352,13 +352,6 @@ POST_INSTALL_KERNEL_DEBS
 		install_deb_chroot "${DEB_PATHLESS}/$RELEASE/${CHOSEN_ROOTFS}_${BSP_CLI_PACKAGE_FULLNAME}.deb" "pathless"
 	fi
 
-	# Debian run-parts skips non-executable files. If 99-uboot lost +x (Windows
-	# git filemode / an older BSP deb), update-initramfs never writes /boot/uInitrd.
-	restore_overlay_executables "${EXTER}/packages/bsp/common" "${SDCARD}"
-	if [[ -f "${SDCARD}/etc/initramfs/post-update.d/99-uboot" ]]; then
-		chmod 755 "${SDCARD}/etc/initramfs/post-update.d/99-uboot"
-	fi
-
 	# install pathless-desktop
 	if [[ "${REPOSITORY_INSTALL}" != *pathless-desktop* ]]; then
 		if [[ $BUILD_DESKTOP == yes ]]; then
@@ -474,7 +467,6 @@ POST_INSTALL_KERNEL_DEBS
 
 	# copy watchdog test programm
 	cp "${EXTER}"/packages/blobs/watchdog/watchdog_test_${ARCH} "${SDCARD}"/usr/local/bin/watchdog_test
-	chmod 755 "${SDCARD}"/usr/local/bin/watchdog_test
 
 	[[ -f "${SDCARD}"/usr/bin/gnome-session ]] && sed -i "s/user-session.*/user-session=ubuntu-wayland/" ${SDCARD}/etc/lightdm/lightdm.conf.d/22-pathless-autologin.conf > /dev/null 2>&1
 	[[ -f "${SDCARD}"/usr/bin/startplasma-x11 ]] && sed -i "s/user-session.*/user-session=plasma-x11/" ${SDCARD}/etc/lightdm/lightdm.conf.d/22-pathless-autologin.conf

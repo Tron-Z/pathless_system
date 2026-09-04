@@ -341,12 +341,6 @@ POST_FAMILY_TWEAKS_BSP
 	# fixing permissions (basic), reference: dh_fixperms
 	find "${destination}" -print0 2>/dev/null | xargs -0r chown --no-dereference 0:0
 	find "${destination}" ! -type l -print0 2>/dev/null | xargs -0r chmod 'go=rX,u+rw,a-s'
-	# dh_fixperms keeps +x only when the working tree already had it. Samba/Windows
-	# checkouts rsync overlay scripts in as 0644; restore the 0755 orangepi ships.
-	restore_overlay_executables "${EXTER}/packages/bsp/common" "${destination}"
-	if [[ -f "${destination}/etc/initramfs/post-update.d/99-uboot" ]]; then
-		chmod 755 "${destination}/etc/initramfs/post-update.d/99-uboot"
-	fi
 
 	# create board DEB file
 	fakeroot dpkg-deb -b -Z${DEB_COMPRESS} "${destination}" "${destination}.deb" >> "${DEST}"/${LOG_SUBPATH}/output.log 2>&1
