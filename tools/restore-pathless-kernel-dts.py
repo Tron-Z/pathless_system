@@ -13,6 +13,36 @@ REPO = "Tron-Z/pathless_system"
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def put_file(
+    branch: str,
+    remote_path: str,
+    content: bytes,
+    message: str,
+    sha: str | None = None,
+) -> None:
+    body = {
+        "message": message,
+        "content": base64.b64encode(content).decode("ascii"),
+        "branch": branch,
+    }
+    if sha is None:
+        try:
+            meta = json.loads(gh_api(f"repos/{REPO}/contents/{remote_path}?ref={branch}"))
+            sha = meta.get("sha")
+        except SystemExit:
+            sha = None
+    if sha:
+        body["sha"] = sha
+    gh_api(
+        "--method",
+        "PUT",
+        f"repos/{REPO}/contents/{remote_path}",
+        "--input",
+        "-",
+        input_data=json.dumps(body).encode(),
+    )
+
+
 def gh_api(*args: str, input_data: bytes | None = None) -> str:
     cmd = ["gh", "api", *args]
     r = subprocess.run(cmd, input=input_data, capture_output=True)
@@ -56,40 +86,42 @@ def restore(branch: str, dts_rel: str) -> None:
     )
     print(f"OK dts -> {branch}:{remote_path}")
 
-    # Ensure Makefile references pathless dtb
+    v2_path = ROOT / "external/branding/kernel" / dts_rel / "rk3566-pathless-3b-v2.dts"
+    if v2_path.is_file():
+        put_file(
+            branch,
+            "arch/arm64/boot/dts/rockchip/rk3566-pathless-3b-v2.dts",
+            v2_path.read_bytes(),
+            f"pathless: restore rk3566-pathless-3b-v2.dts on {branch}",
+        )
+        print(f"OK dts v2 -> {branch}")
+    elif dts_rel == "6.6":
+        raise SystemExit(f"missing {v2_path}")
+
+    # Ensure Makefile references pathless dtbs (v1 + v2 on 6.6)
     mk_path = "arch/arm64/boot/dts/rockchip/Makefile"
     mk = json.loads(gh_api(f"repos/{REPO}/contents/{mk_path}?ref={branch}"))
     mk_text = base64.b64decode(mk["content"]).decode("utf-8", "replace")
-    line = "dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-pathless-3b.dtb"
-    if line not in mk_text:
-        if "rk3566-orangepi-3b.dtb" in mk_text:
-            mk_text = mk_text.replace("rk3566-orangepi-3b.dtb", "rk3566-pathless-3b.dtb")
-        else:
-            # append after first rk3566 dtb line if possible
-            lines = mk_text.splitlines(keepends=True)
-            out = []
-            inserted = False
-            for ln in lines:
-                out.append(ln)
-                if (not inserted) and "rk3566-" in ln and ln.strip().endswith(".dtb"):
-                    out.append(line + "\n")
-                    inserted = True
-            if not inserted:
-                out.append(line + "\n")
-            mk_text = "".join(out)
-        body = {
-            "message": f"pathless: add rk3566-pathless-3b.dtb to Makefile on {branch}",
-            "content": base64.b64encode(mk_text.encode()).decode("ascii"),
-            "branch": branch,
-            "sha": mk["sha"],
-        }
-        gh_api(
-            "--method",
-            "PUT",
-            f"repos/{REPO}/contents/{mk_path}",
-            "--input",
-            "-",
-            input_data=json.dumps(body).encode(),
+    want_v2 = dts_rel == "6.6" and v2_path.is_file()
+    if "rk3566-pathless-3b.dtb" not in mk_text or (
+        want_v2 and "rk3566-pathless-3b-v2.dtb" not in mk_text
+    ):
+        mk_text = mk_text.replace("rk3566-orangepi-3b-v2.dtb", "rk3566-pathless-3b-v2.dtb")
+        mk_text = mk_text.replace("rk3566-orangepi-3b.dtb", "rk3566-pathless-3b.dtb")
+        if "rk3566-pathless-3b.dtb" not in mk_text:
+            mk_text += "dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-pathless-3b.dtb\n"
+        if want_v2 and "rk3566-pathless-3b-v2.dtb" not in mk_text:
+            mk_text = mk_text.replace(
+                "rk3566-pathless-3b.dtb",
+                "rk3566-pathless-3b.dtb \\\n\trk3566-pathless-3b-v2.dtb",
+                1,
+            )
+        put_file(
+            branch,
+            mk_path,
+            mk_text.encode(),
+            f"pathless: add rk3566-pathless-3b dtb(s) to Makefile on {branch}",
+            sha=mk["sha"],
         )
         print(f"OK makefile -> {branch}:{mk_path}")
     else:

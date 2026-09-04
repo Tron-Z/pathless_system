@@ -24,6 +24,7 @@ source "${SRC}/external/config/sources/families/rockchip-rk356x.conf"
 
 UBOOT_DTS="${SRC}/u-boot/$(branch2dir "${BOOTBRANCH}")/arch/arm/dts/rk3566-pathless-3b.dts"
 KERNEL_DTS="${SRC}/kernel/$(branch2dir "${KERNELBRANCH}")/arch/arm64/boot/dts/rockchip/rk3566-pathless-3b.dts"
+KERNEL_DTS_V2_BRANDING="${SRC}/external/branding/kernel/6.6/rk3566-pathless-3b-v2.dts"
 
 check_file() {
 	local label=$1 path=$2
@@ -52,6 +53,7 @@ echo
 check_file "U-Boot DTS" "$UBOOT_DTS"
 check_absent "legacy U-Boot DTS" "${UBOOT_DTS%/rk3566-pathless-3b.dts}/rk3566-orangepi-3b.dts"
 check_file "Kernel DTS" "$KERNEL_DTS"
+check_file "Kernel DTS v2 branding" "$KERNEL_DTS_V2_BRANDING"
 check_absent "legacy Kernel DTS" "${KERNEL_DTS%/rk3566-pathless-3b.dts}/rk3566-orangepi-3b.dts"
 
 if [[ $FAIL -ne 0 ]]; then

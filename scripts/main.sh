@@ -455,6 +455,45 @@ if [[ ${IGNORE_UPDATES} != yes ]]; then
 	BUILD_HOST_TOOLS
 fi
 
+# Official OPi 3B U-Boot late_init reads GPIO4_PC20 and switches kernel DTB to *-v2.dtb.
+# Pathless renamed the DTS compatible; keep the same switch and install the v2 DTB.
+if [[ $BOARD == pathless-rk3566 ]]; then
+	if [[ $BUILD_OPT =~ u-boot|image && -f ${BOOTSOURCEDIR}/board/rockchip/evb_rk3568/evb_rk3568.c ]]; then
+		sed -i 's/rockchip,rk3566-orangepi-3b/rockchip,rk3566-pathless-3b/g' \
+			"${BOOTSOURCEDIR}/board/rockchip/evb_rk3568/evb_rk3568.c"
+	fi
+	if [[ $BUILD_OPT =~ kernel|image && ${BRANCH} == current ]]; then
+		dts_dir="${LINUXSOURCEDIR}/arch/arm64/boot/dts/rockchip"
+		v2_branding="${EXTER}/branding/kernel/6.6/rk3566-pathless-3b-v2.dts"
+		[[ -f ${v2_branding} ]] || exit_with_error "Missing kernel device tree" "${v2_branding}"
+		[[ -d ${dts_dir} ]] || exit_with_error "Missing kernel device tree directory" "${dts_dir}"
+		cp -a "${v2_branding}" "${dts_dir}/rk3566-pathless-3b-v2.dts"
+		python3 - "${dts_dir}/Makefile" << 'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+if not p.is_file():
+    sys.exit(0)
+text = p.read_text()
+if "rk3566-pathless-3b-v2.dtb" in text:
+    sys.exit(0)
+lines = [
+    ln for ln in text.splitlines(True)
+    if ln.strip() != "dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-pathless-3b.dtb"
+]
+out = []
+inserted = False
+for ln in lines:
+    out.append(ln)
+    if (not inserted) and "rk3566-pathless-3b.dtb" in ln:
+        indent = "\t" if ln.startswith("\t") else ""
+        out.append(f"{indent}rk3566-pathless-3b-v2.dtb \\\n")
+        inserted = True
+p.write_text("".join(out))
+PY
+	fi
+fi
+
 for option in $(tr ',' ' ' <<< "$CLEAN_LEVEL"); do
 	[[ $option != sources ]] && cleaning "$option"
 done
