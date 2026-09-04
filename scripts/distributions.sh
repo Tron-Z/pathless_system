@@ -354,17 +354,10 @@ POST_INSTALL_KERNEL_DEBS
 
 	# Debian run-parts skips non-executable files. If 99-uboot lost +x (Windows
 	# git filemode / an older BSP deb), update-initramfs never writes /boot/uInitrd.
+	restore_overlay_executables "${EXTER}/packages/bsp/common" "${SDCARD}"
 	if [[ -f "${SDCARD}/etc/initramfs/post-update.d/99-uboot" ]]; then
 		chmod 755 "${SDCARD}/etc/initramfs/post-update.d/99-uboot"
 	fi
-	# Same 0755 orangepi ships; also covers reused BSP debs built from a 0644 checkout.
-	[[ -d "${SDCARD}/usr/lib/pathless" ]] && find "${SDCARD}/usr/lib/pathless" -type f -exec chmod 755 {} +
-	[[ -d "${SDCARD}/etc/update-motd.d" ]] && find "${SDCARD}/etc/update-motd.d" -type f -exec chmod 755 {} +
-	[[ -d "${SDCARD}/etc/initramfs-tools/hooks" ]] && find "${SDCARD}/etc/initramfs-tools/hooks" -type f -exec chmod 755 {} +
-	[[ -d "${SDCARD}/usr/share/initramfs-tools/hooks" ]] && find "${SDCARD}/usr/share/initramfs-tools/hooks" -type f -exec chmod 755 {} +
-	find "${SDCARD}/usr/sbin" "${SDCARD}/usr/bin" "${SDCARD}/usr/local/bin" \
-		-type f \( -name 'pathless-*' -o -name 'pathlessmonitor' -o -name 'nand-sata-install' \
-		-o -name 'burn_to_emmc' -o -name 'memtester.sh' \) -exec chmod 755 {} + 2>/dev/null || true
 
 	# install pathless-desktop
 	if [[ "${REPOSITORY_INSTALL}" != *pathless-desktop* ]]; then
@@ -481,6 +474,7 @@ POST_INSTALL_KERNEL_DEBS
 
 	# copy watchdog test programm
 	cp "${EXTER}"/packages/blobs/watchdog/watchdog_test_${ARCH} "${SDCARD}"/usr/local/bin/watchdog_test
+	chmod 755 "${SDCARD}"/usr/local/bin/watchdog_test
 
 	[[ -f "${SDCARD}"/usr/bin/gnome-session ]] && sed -i "s/user-session.*/user-session=ubuntu-wayland/" ${SDCARD}/etc/lightdm/lightdm.conf.d/22-pathless-autologin.conf > /dev/null 2>&1
 	[[ -f "${SDCARD}"/usr/bin/startplasma-x11 ]] && sed -i "s/user-session.*/user-session=plasma-x11/" ${SDCARD}/etc/lightdm/lightdm.conf.d/22-pathless-autologin.conf

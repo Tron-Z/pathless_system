@@ -777,7 +777,14 @@ display_alert "Building kernel splash logo" "$RELEASE" "info"
 	THROBBER_HEIGHT=$(identify $THROBBER | head -1 | cut -d " " -f 3 | cut -d x -f 2)
 	convert -alpha remove -background "#000000"	$LOGO "${SDCARD}"/tmp/logo.rgb
 	convert -alpha remove -background "#000000" $THROBBER "${SDCARD}"/tmp/throbber%02d.rgb
-	${EXTER}/packages/blobs/splash/bootsplash-packer \
+	# Host packer may lose +x on Samba/Windows checkouts; run a 0755 copy.
+	local bootsplash_packer="${EXTER}/packages/blobs/splash/bootsplash-packer"
+	if [[ ! -x "${bootsplash_packer}" ]]; then
+		cp "${bootsplash_packer}" "${SDCARD}/tmp/bootsplash-packer"
+		chmod 755 "${SDCARD}/tmp/bootsplash-packer"
+		bootsplash_packer="${SDCARD}/tmp/bootsplash-packer"
+	fi
+	${bootsplash_packer} \
 	--bg_red 0x00 \
 	--bg_green 0x00 \
 	--bg_blue 0x00 \

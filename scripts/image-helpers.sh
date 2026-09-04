@@ -16,6 +16,7 @@
 # install_external_applications
 # write_uboot
 # copy_all_packages_files_for
+# restore_overlay_executables
 # customize_image
 # install_deb_chroot
 # run_on_sdcard
@@ -153,9 +154,47 @@ copy_all_packages_files_for()
 		if [ -d "${package_dirpath}" ];
 		then
 			cp -r "${package_dirpath}/"* "${destination}/" 2> /dev/null
+			restore_overlay_executables "${package_dirpath}" "${destination}"
 			display_alert "Adding files from" "${package_dirpath}"
 		fi
 	done
+}
+
+# Restore 0755 on overlay scripts/binaries that Samba/Windows checkouts rsync in as 0644.
+# Orangepi keeps these bits from a native Linux tree; dh_fixperms only preserves existing +x.
+# $1 = overlay source directory, $2 = destination root (BSP deb tree or $SDCARD)
+restore_overlay_executables()
+{
+	local src="${1%/}" dest="${2%/}"
+	[[ -d "${src}" && -d "${dest}" ]] || return 0
+	local f rel destf line
+	while IFS= read -r -d '' f; do
+		rel="${f#${src}/}"
+		destf="${dest}/${rel}"
+		[[ -f "${destf}" ]] || continue
+		case "${rel}" in
+			DEBIAN/control|DEBIAN/triggers|DEBIAN/conffiles) continue ;;
+			*.service|*.timer|*.conf|*.rules|*.json|*.txt|*.pkla|*.desktop|*.xml|*.png|*.bmp|*.wav|*.mp4|*.plymouth) continue ;;
+		esac
+		case "${rel}" in
+			usr/bin/*|usr/sbin/*|bin/*|sbin/*|usr/local/bin/*|usr/local/sbin/*|\
+			usr/lib/pathless/*|\
+			etc/profile.d/*|etc/update-motd.d/*|\
+			etc/cron.daily/*|etc/cron.hourly/*|etc/cron.weekly/*|etc/cron.monthly/*|\
+			etc/initramfs/post-update.d/*|etc/initramfs/pre-update.d/*|\
+			etc/initramfs-tools/hooks/*|etc/initramfs-tools/scripts/*|\
+			usr/share/initramfs-tools/hooks/*|usr/share/initramfs-tools/scripts/*|\
+			etc/network/if-up.d/*|etc/network/if-down.d/*|etc/network/if-pre-up.d/*|etc/network/if-post-down.d/*|\
+			etc/NetworkManager/dispatcher.d/*|\
+			etc/kernel/postinst.d/*|etc/kernel/postrm.d/*|etc/kernel/preinst.d/*|\
+			DEBIAN/preinst|DEBIAN/postinst|DEBIAN/prerm|DEBIAN/postrm)
+				chmod 755 "${destf}"
+				continue
+				;;
+		esac
+		IFS= read -r line < "${f}" || true
+		[[ "${line}" == "#!"* ]] && chmod 755 "${destf}"
+	done < <(find "${src}" -type f -print0)
 }
 
 

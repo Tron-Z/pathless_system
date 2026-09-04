@@ -341,21 +341,12 @@ POST_FAMILY_TWEAKS_BSP
 	# fixing permissions (basic), reference: dh_fixperms
 	find "${destination}" -print0 2>/dev/null | xargs -0r chown --no-dereference 0:0
 	find "${destination}" ! -type l -print0 2>/dev/null | xargs -0r chmod 'go=rX,u+rw,a-s'
-	# dh_fixperms-style chmod above keeps +x only if it was already set. Force the
-	# U-Boot initramfs hook executable so run-parts actually converts uInitrd.
+	# dh_fixperms keeps +x only when the working tree already had it. Samba/Windows
+	# checkouts rsync overlay scripts in as 0644; restore the 0755 orangepi ships.
+	restore_overlay_executables "${EXTER}/packages/bsp/common" "${destination}"
 	if [[ -f "${destination}/etc/initramfs/post-update.d/99-uboot" ]]; then
 		chmod 755 "${destination}/etc/initramfs/post-update.d/99-uboot"
 	fi
-	# dh_fixperms-style pass keeps +x only when the source tree already had it.
-	# Orangepi ships these 0755; Samba/Windows checkouts rsync them in as 0644 and
-	# systemd then fails first-boot units with 203/EXEC (resize/zram/ramlog).
-	[[ -d "${destination}/usr/lib/pathless" ]] && find "${destination}/usr/lib/pathless" -type f -exec chmod 755 {} +
-	[[ -d "${destination}/etc/update-motd.d" ]] && find "${destination}/etc/update-motd.d" -type f -exec chmod 755 {} +
-	[[ -d "${destination}/etc/initramfs-tools/hooks" ]] && find "${destination}/etc/initramfs-tools/hooks" -type f -exec chmod 755 {} +
-	[[ -d "${destination}/usr/share/initramfs-tools/hooks" ]] && find "${destination}/usr/share/initramfs-tools/hooks" -type f -exec chmod 755 {} +
-	find "${destination}/usr/sbin" "${destination}/usr/bin" "${destination}/usr/local/bin" \
-		-type f \( -name 'pathless-*' -o -name 'pathlessmonitor' -o -name 'nand-sata-install' \
-		-o -name 'burn_to_emmc' -o -name 'memtester.sh' \) -exec chmod 755 {} + 2>/dev/null || true
 
 	# create board DEB file
 	fakeroot dpkg-deb -b -Z${DEB_COMPRESS} "${destination}" "${destination}.deb" >> "${DEST}"/${LOG_SUBPATH}/output.log 2>&1
